@@ -19,6 +19,15 @@ export const metadata: Metadata = { title: 'Dashboard' };
 
 const PAGE_SIZE = 4;
 
+type UpcomingEvent = {
+  id: number;
+  title: string;
+  startDate: Date;
+  location: { name: string };
+  province: { name: string };
+  country: { name: string };
+};
+
 export default async function DashboardPage() {
   const { userId } = await auth();
   if (!userId) return null;
@@ -48,7 +57,7 @@ export default async function DashboardPage() {
       include: { country: true, location: true, province: true },
       orderBy: { startDate: 'asc' },
       take: 5,
-    }),
+    }) as Promise<UpcomingEvent[]>,
     isAdmin
       ? prisma.event.groupBy({
           by: ['countryId'],
