@@ -97,7 +97,7 @@ export function CountriesManager({ countries, page, totalPages, total, pageSize 
     try {
       const res = await fetch(`/api/countries/${c.id}`);
       if (res.ok) {
-        const json = await res.json();
+        const json = await res.json() as { data: typeof viewItem };
         setViewItem(json.data);
       }
     } catch {

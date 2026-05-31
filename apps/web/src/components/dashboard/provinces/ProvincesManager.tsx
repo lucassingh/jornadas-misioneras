@@ -96,7 +96,7 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
     try {
       const res = await fetch(`/api/provinces/${p.id}`);
       if (res.ok) {
-        const json = await res.json();
+        const json = await res.json() as { data: typeof viewItem };
         setViewItem(json.data);
       }
     } catch {

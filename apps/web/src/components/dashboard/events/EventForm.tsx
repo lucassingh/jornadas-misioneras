@@ -107,7 +107,7 @@ export function EventForm({ event, countries, provinces, locations }: Props) {
       router.push('/dashboard/events');
       router.refresh();
     } else {
-      const json = await res.json();
+      const json = await res.json() as { error?: { message?: string } };
       toast.error(json.error?.message ?? 'Error al guardar el evento', { id: toastId });
     }
   };

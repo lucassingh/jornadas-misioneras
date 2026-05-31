@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import MuiPagination from '@mui/material/Pagination';
 import PaginationItem from '@mui/material/PaginationItem';
-import Select from '@mui/material/Select';
+import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -50,7 +50,7 @@ export function PaginationBar({ page, totalPages, total, pageSize }: Props) {
         </Typography>
         <Select
           value={PAGE_SIZE_OPTIONS.includes(pageSize) ? pageSize : PAGE_SIZE_OPTIONS[0]}
-          onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+          onChange={(e: SelectChangeEvent<number>) => handlePageSizeChange(Number(e.target.value))}
           size="small"
           variant="outlined"
           sx={{
