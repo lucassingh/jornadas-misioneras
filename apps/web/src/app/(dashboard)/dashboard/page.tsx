@@ -65,7 +65,7 @@ export default async function DashboardPage() {
     ? await prisma.country.findMany({ where: { id: { in: countryIds } } })
     : [];
 
-  const countryMap = Object.fromEntries(countries.map((c) => [c.id, c.name]));
+  const countryMap = Object.fromEntries(countries.map((c: { id: number; name: string }) => [c.id, c.name]));
   const maxCount = Math.max(...(eventsByCountry as { _count: { id: number } }[]).map((e) => e._count.id), 1);
 
   const statCards = [
