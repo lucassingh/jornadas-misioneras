@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  events    Event[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Country {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  provinces Province[]
+  events    Event[]
+  createdAt DateTime   @default(now())
+}
+
+model Province {
+  id        Int        @id @default(autoincrement())
+  name      String
+  countryId Int
+  country   Country    @relation(fields: [countryId], references: [id])
+  locations Location[]
+  events    Event[]
+}
+
+model Location {
+  id         Int      @id @default(autoincrement())
+  name       String
+  provinceId Int
+  province   Province @relation(fields: [provinceId], references: [id])
+  events     Event[]
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  locationId  Int
+  location    Location @relation(fields: [locationId], references: [id])
+  countryId   Int
+  country     Country  @relation(fields: [countryId], references: [id])
+  provinceId  Int
+  province    Province @relation(fields: [provinceId], references: [id])
+  createdBy   String
+  user        User     @relation(fields: [createdBy], references: [clerkId])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
