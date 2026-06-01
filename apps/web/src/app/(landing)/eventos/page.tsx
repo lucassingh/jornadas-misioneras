@@ -20,15 +20,19 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 async function getPublicEvents() {
-  return prisma.event.findMany({
-    where: { endDate: { gte: new Date() } },
-    include: {
-      country: true,
-      province: true,
-      location: true,
-    },
-    orderBy: { startDate: 'asc' },
-  });
+  try {
+    return await prisma.event.findMany({
+      where: { endDate: { gte: new Date() } },
+      include: {
+        country: true,
+        province: true,
+        location: true,
+      },
+      orderBy: { startDate: 'asc' },
+    });
+  } catch {
+    return [];
+  }
 }
 
 export default async function EventosPage() {
