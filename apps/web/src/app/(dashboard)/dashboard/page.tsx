@@ -17,7 +17,6 @@ import { es } from 'date-fns/locale';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
-const PAGE_SIZE = 4;
 
 type UpcomingEvent = {
   id: number;

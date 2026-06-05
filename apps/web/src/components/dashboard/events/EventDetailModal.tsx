@@ -14,7 +14,7 @@ import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   X, MapPin, Globe, Calendar, Clock, Users, Link2, Phone, Mail,
-  User, Church, Zap, Info, CreditCard, Building2, Image as ImageIcon,
+  User, Info, CreditCard, Building2, Image as ImageIcon,
 } from 'lucide-react';
 import { COLOR_TOKENS } from '@jornadas/ui';
 
