@@ -31,7 +31,7 @@ import { DetailModal } from '../DetailModal';
 
 interface Country { id: number; name: string }
 interface Province {
-  id: number; name: string; countryId: number;
+  id: number; name: string; countryId: number; region: string | null;
   country: Country;
   _count: { locations: number; events: number };
 }
@@ -83,12 +83,16 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
   const [name, setName] = useState('');
   const [countryId, setCountryId] = useState<number | ''>('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [region, setRegion] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [viewItem, setViewItem] = useState<ProvinceDetail | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
 
-  const openCreate = () => { setEditing(null); setName(''); setCountryId(''); setDialogOpen(true); };
-  const openEdit = (p: Province) => { setEditing(p); setName(p.name); setCountryId(p.countryId); setDialogOpen(true); };
+  const argentinaId = countries.find((c) => c.name === 'Argentina')?.id;
+  const isArgentina = countryId !== '' && countryId === argentinaId;
+
+  const openCreate = () => { setEditing(null); setName(''); setCountryId(''); setRegion(''); setDialogOpen(true); };
+  const openEdit = (p: Province) => { setEditing(p); setName(p.name); setCountryId(p.countryId); setRegion(p.region ?? ''); setDialogOpen(true); };
 
   const openView = async (p: Province) => {
     setViewLoading(true);
@@ -114,7 +118,7 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
       const res = await fetch(editing ? `/api/provinces/${editing.id}` : '/api/provinces', {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), countryId: Number(countryId) }),
+        body: JSON.stringify({ name: name.trim(), countryId: Number(countryId), region: region || null }),
       });
       if (res.ok) {
         toast.success(editing ? 'Provincia actualizada' : 'Provincia creada', { id: toastId });
@@ -265,10 +269,31 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{editing ? 'Editar Provincia' : 'Nueva Provincia'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
-          <TextField select label="País" value={countryId} onChange={(e) => setCountryId(Number(e.target.value))} fullWidth>
+          <TextField
+            select label="País" fullWidth value={countryId}
+            onChange={(e) => { setCountryId(Number(e.target.value)); setRegion(''); }}
+          >
             {countries.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
           </TextField>
+
           <TextField autoFocus label="Nombre" fullWidth value={name} onChange={(e) => setName(e.target.value)} />
+
+          {isArgentina && (
+            <TextField
+              select label="Región" fullWidth value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              helperText="Requerido para que aparezca en el filtro de región del formulario de evento"
+            >
+              <MenuItem value="">Sin asignar</MenuItem>
+              <MenuItem value="NOA">Noroeste (NOA)</MenuItem>
+              <MenuItem value="NEA">Noreste (NEA)</MenuItem>
+              <MenuItem value="CUYO">Cuyo</MenuItem>
+              <MenuItem value="CENTRO">Centro</MenuItem>
+              <MenuItem value="PAMPEANA">Pampeana</MenuItem>
+              <MenuItem value="METROPOLITANA">Metropolitana (AMBA)</MenuItem>
+              <MenuItem value="PATAGONIA">Patagonia</MenuItem>
+            </TextField>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)} variant="text">Cancelar</Button>

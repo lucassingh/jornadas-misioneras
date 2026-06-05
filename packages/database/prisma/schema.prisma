@@ -8,10 +8,33 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
 enum Role {
   ADMIN
   USER
 }
+
+// Geographic regions of Argentina. Only applied to Argentine provinces.
+enum ArgentinaRegion {
+  NOA           // Noroeste: Jujuy, Salta, Tucumán, Catamarca, La Rioja, Santiago del Estero
+  NEA           // Noreste: Formosa, Chaco, Misiones, Corrientes
+  CUYO          // Cuyo: Mendoza, San Juan, San Luis
+  CENTRO        // Centro: Córdoba, Santa Fe, Entre Ríos
+  PAMPEANA      // Pampeana: Buenos Aires (provincia), La Pampa
+  METROPOLITANA // AMBA: Ciudad Autónoma de Buenos Aires + Gran Buenos Aires
+  PATAGONIA     // Patagonia: Neuquén, Río Negro, Chubut, Santa Cruz, Tierra del Fuego
+}
+
+// Controls the shape of EventPricing fields.
+// SYSTEM_ONE: registration (early/late) + single event payment (before deadline or at event)
+// SYSTEM_TWO: registration (early/late) + event payment split in 2 installments
+enum PaymentSystemType {
+  SYSTEM_ONE
+  SYSTEM_TWO
+}
+
+// ── Users ──────────────────────────────────────────────────────────────────────
 
 model User {
   id        String   @id @default(cuid())
@@ -24,6 +47,8 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+// ── Geography ──────────────────────────────────────────────────────────────────
+
 model Country {
   id        Int        @id @default(autoincrement())
   name      String     @unique
@@ -33,10 +58,11 @@ model Country {
 }
 
 model Province {
-  id        Int        @id @default(autoincrement())
+  id        Int              @id @default(autoincrement())
   name      String
   countryId Int
-  country   Country    @relation(fields: [countryId], references: [id])
+  country   Country          @relation(fields: [countryId], references: [id])
+  region    ArgentinaRegion? // Only populated for Argentine provinces
   locations Location[]
   events    Event[]
 }
@@ -49,20 +75,94 @@ model Location {
   events     Event[]
 }
 
+// ── Events ─────────────────────────────────────────────────────────────────────
+
 model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  locationId  Int
-  location    Location @relation(fields: [locationId], references: [id])
-  countryId   Int
-  country     Country  @relation(fields: [countryId], references: [id])
-  provinceId  Int
-  province    Province @relation(fields: [provinceId], references: [id])
-  createdBy   String
-  user        User     @relation(fields: [createdBy], references: [clerkId])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id Int @id @default(autoincrement())
+
+  // ── Step 1: Basic info ───────────────────────────────────────────────────
+  title     String
+  imageUrl  String? // Cloudinary secure_url — primary image (max 5 MB)
+  imageUrl2 String? // Cloudinary secure_url — secondary image (max 5 MB)
+
+  // ── Step 2: Dates (date only — no time component) ────────────────────────
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  // duration is computed on the frontend (differenceInDays(endDate, startDate))
+
+  // ── Step 3: Location ─────────────────────────────────────────────────────
+  // region is derived from province.region — not stored redundantly on Event
+  countryId  Int
+  country    Country  @relation(fields: [countryId], references: [id])
+  provinceId Int
+  province   Province @relation(fields: [provinceId], references: [id])
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+
+  // ── Step 4: About the event ──────────────────────────────────────────────
+  description      String? // Long text: event overview
+  hostChurch       String? // Long text: hosting church details
+  activities       String? // Long text: scheduled activities
+  extraInfo        String? // Long text: miscellaneous information
+  targetAudience   String? // Long text: who can attend
+  capacity         Int? // Maximum number of attendees
+  registrationLink String? // External registration URL (e.g. Google Form)
+
+  // ── Step 5: Contact ──────────────────────────────────────────────────────
+  contactName  String?
+  contactEmail String?
+  contactPhone String? // WhatsApp international format: +54911XXXXXXXX
+
+  // ── Step 6: Pricing (null = free event) ──────────────────────────────────
+  pricing EventPricing?
+
+  // Ownership
+  createdBy String
+  user      User   @relation(fields: [createdBy], references: [clerkId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Pricing ────────────────────────────────────────────────────────────────────
+
+model EventPricing {
+  id      Int   @id @default(autoincrement())
+  eventId Int   @unique
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  paymentSystem PaymentSystemType
+
+  // ── Registration — identical in both systems ──────────────────────────────
+  // If attendee pays before registrationEarlyDeadline → registrationEarlyAmount
+  // If attendee pays before registrationLateDeadline (but after early) → registrationLateAmount
+  registrationEarlyDeadline DateTime @db.Date
+  registrationEarlyAmount   Decimal  @db.Decimal(10, 2)
+  registrationLateDeadline  DateTime @db.Date
+  registrationLateAmount    Decimal  @db.Decimal(10, 2)
+
+  // ── SYSTEM_ONE: single event payment with two pricing tiers ───────────────
+  // Tier A: pay before eventPaymentDeadline → eventPaymentEarlyAmount
+  // Tier B: pay at the event (no deadline)  → eventPaymentAtEventAmount
+  // Attendee pays registration + ONE of the two tiers (not both)
+  eventPaymentDeadline      DateTime? @db.Date
+  eventPaymentEarlyAmount   Decimal?  @db.Decimal(10, 2)
+  eventPaymentAtEventAmount Decimal?  @db.Decimal(10, 2)
+
+  // ── SYSTEM_TWO: event payment split in two installments ───────────────────
+  // Installment 1: pay before installment1Deadline → installment1Amount
+  // Installment 2: pay at the event (no deadline)  → installment2Amount
+  // Attendee pays registration + BOTH installments (sequential, not either/or)
+  installment1Deadline DateTime? @db.Date
+  installment1Amount   Decimal?  @db.Decimal(10, 2)
+  installment2Amount   Decimal?  @db.Decimal(10, 2)
+
+  // Grand total, calculated on the frontend as the form is filled and
+  // persisted on save. Used for public display on the landing page.
+  // System 1 best case: registrationEarlyAmount + eventPaymentEarlyAmount
+  // System 2 best case: registrationEarlyAmount + installment1Amount + installment2Amount
+  totalAmount Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

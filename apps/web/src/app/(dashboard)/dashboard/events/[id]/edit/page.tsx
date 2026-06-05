@@ -1,14 +1,15 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { notFound, redirect } from 'next/navigation';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IconButton from '@mui/material/IconButton';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { prisma } from '@jornadas/database';
 import { EventForm } from '@/components/dashboard/events/EventForm';
+import { Jumbotron } from '@/components/dashboard/Jumbotron';
 
 export const metadata: Metadata = { title: 'Editar Evento' };
 
@@ -24,7 +25,7 @@ export default async function EditEventPage({ params }: Props) {
   if (isNaN(eventId)) notFound();
 
   const [event, dbUser] = await Promise.all([
-    prisma.event.findUnique({ where: { id: eventId } }),
+    prisma.event.findUnique({ where: { id: eventId }, include: { pricing: true } }),
     prisma.user.findUnique({ where: { clerkId: userId }, select: { role: true } }),
   ]);
 
@@ -42,22 +43,24 @@ export default async function EditEventPage({ params }: Props) {
   ]);
 
   return (
-    <Container maxWidth="md">
-      <Box display="flex" alignItems="center" gap={1} mb={3}>
-        <IconButton component={Link} href="/dashboard/events">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" fontWeight={700}>
-          Editar Evento
-        </Typography>
-      </Box>
-
-      <EventForm
-        event={event}
-        countries={countries}
-        provinces={provinces}
-        locations={locations}
+    <>
+      <Jumbotron
+        title="Editar Evento"
+        subtitle="Modificá los datos del evento"
+        action={
+          <IconButton component={Link} href="/dashboard/events" sx={{ color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } }}>
+            <ArrowLeft size={20} />
+          </IconButton>
+        }
       />
-    </Container>
+      <Box sx={{ px: { xs: 2, md: 6 }, pb: 6 }}>
+        <EventForm
+          event={event as unknown as Parameters<typeof EventForm>[0]['event']}
+          countries={countries}
+          provinces={provinces}
+          locations={locations}
+        />
+      </Box>
+    </>
   );
 }

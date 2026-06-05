@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, isAdmin } from '@/lib/permissions';
-import { createEventSchema } from '@/lib/validations/event';
+import { createEventSchema, mapPricingToDb } from '@/lib/validations/event';
+
+const EVENT_INCLUDE = {
+  country: true,
+  province: true,
+  location: true,
+  pricing: true,
+} as const;
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
@@ -17,7 +24,7 @@ export async function GET(req: NextRequest) {
   const [data, total] = await Promise.all([
     prisma.event.findMany({
       where,
-      include: { country: true, province: true, location: true },
+      include: EVENT_INCLUDE,
       orderBy: { startDate: 'desc' },
       skip,
       take: pageSize,
@@ -33,18 +40,33 @@ export async function POST(req: NextRequest) {
   if (!user) return unauthorized();
 
   const body = await req.json();
+  console.log('[POST /api/events] body recibido:', JSON.stringify(body, null, 2));
+
   const parsed = createEventSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    console.log('[POST /api/events] Zod error:', JSON.stringify(parsed.error.flatten(), null, 2));
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
-  const event = await prisma.event.create({
-    data: {
-      ...parsed.data,
-      startDate: new Date(parsed.data.startDate),
-      endDate: new Date(parsed.data.endDate),
-      createdBy: user.clerkId,
-    },
-    include: { country: true, province: true, location: true },
-  });
+  const { pricing, startDate, endDate, ...rest } = parsed.data;
+  console.log('[POST /api/events] datos parseados OK, creando en DB...');
 
-  return NextResponse.json({ data: event }, { status: 201 });
+  try {
+    const event = await prisma.event.create({
+      data: {
+        ...rest,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        createdBy: user.clerkId,
+        ...(pricing && { pricing: { create: mapPricingToDb(pricing) } }),
+      },
+      include: EVENT_INCLUDE,
+    });
+
+    console.log('[POST /api/events] Evento creado con ID:', event.id);
+    return NextResponse.json({ data: event }, { status: 201 });
+  } catch (err) {
+    console.error('[POST /api/events] Error de Prisma:', err);
+    return NextResponse.json({ error: 'Error interno al crear el evento' }, { status: 500 });
+  }
 }

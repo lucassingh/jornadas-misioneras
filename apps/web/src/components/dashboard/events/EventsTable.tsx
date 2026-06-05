@@ -14,15 +14,14 @@ import Tooltip from '@mui/material/Tooltip';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import { Pencil, Trash2, Eye, Calendar, MapPin, Building2, Globe, Clock } from 'lucide-react';
+import { Pencil, Trash2, Eye, Calendar } from 'lucide-react';
 import { ConfirmDialog, COLOR_TOKENS } from '@jornadas/ui';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import { PaginationBar } from '../PaginationBar';
 import { TableSkeleton } from '../TableSkeleton';
-import { DetailModal } from '../DetailModal';
+import { EventDetailModal } from './EventDetailModal';
 
 interface EventRow {
   id: number;
@@ -63,31 +62,12 @@ interface Props {
   pageSize: number;
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
-        borderRadius: 1.5, bgcolor: 'action.hover',
-      }}
-    >
-      <Box sx={{ color: 'text.secondary', flexShrink: 0 }}>{icon}</Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1 }}>
-          {label}
-        </Typography>
-        <Typography variant="body2" fontWeight={600}>{value}</Typography>
-      </Box>
-    </Box>
-  );
-}
-
 export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, total, pageSize }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [viewItem, setViewItem] = useState<EventRow | null>(null);
+  const [viewEventId, setViewEventId] = useState<number | null>(null);
 
   const canEdit = (e: EventRow) => isAdmin || e.createdBy === currentUserId;
 
@@ -176,7 +156,7 @@ export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, 
                   <TableCell align="right">
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75 }}>
                       <Tooltip title="Ver detalle">
-                        <IconButton size="small" onClick={() => setViewItem(event)} sx={{ borderRadius: 1.5, ...ACTION_STYLES.view }}>
+                        <IconButton size="small" onClick={() => setViewEventId(event.id)} sx={{ borderRadius: 1.5, ...ACTION_STYLES.view }}>
                           <Eye size={15} />
                         </IconButton>
                       </Tooltip>
@@ -204,64 +184,7 @@ export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, 
         <PaginationBar page={page} totalPages={totalPages} total={total} pageSize={pageSize} />
       </TableContainer>
 
-      {/* Modal detalle */}
-      <DetailModal
-        open={viewItem !== null}
-        onClose={() => setViewItem(null)}
-        title={viewItem?.title ?? ''}
-        subtitle={viewItem ? `${viewItem.location.name}, ${viewItem.province.name}` : ''}
-        icon={<Calendar size={22} />}
-        iconBgColor={`${COLOR_TOKENS.extra1}15`}
-        iconColor={COLOR_TOKENS.extra1}
-        loading={false}
-      >
-        {viewItem && (
-          <>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1 }}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Box
-                  sx={{
-                    flex: 1, p: 1.75, borderRadius: 2,
-                    bgcolor: `${COLOR_TOKENS.brand}10`,
-                    border: `1px solid ${COLOR_TOKENS.brand}25`,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                    <Clock size={12} style={{ opacity: 0.55 }} />
-                    <Typography variant="caption" color="text.secondary">Inicio</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700}>
-                    {format(new Date(viewItem.startDate), "d MMM yyyy", { locale: es })}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: 1, p: 1.75, borderRadius: 2,
-                    bgcolor: `${COLOR_TOKENS.extra1}10`,
-                    border: `1px solid ${COLOR_TOKENS.extra1}25`,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                    <Clock size={12} style={{ opacity: 0.55 }} />
-                    <Typography variant="caption" color="text.secondary">Fin</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700}>
-                    {format(new Date(viewItem.endDate), "d MMM yyyy", { locale: es })}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            <Divider sx={{ my: 2 }} />
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <InfoRow icon={<MapPin size={15} />} label="Localidad" value={viewItem.location.name} />
-              <InfoRow icon={<Building2 size={15} />} label="Provincia" value={viewItem.province.name} />
-              <InfoRow icon={<Globe size={15} />} label="País" value={viewItem.country.name} />
-            </Box>
-          </>
-        )}
-      </DetailModal>
+      <EventDetailModal eventId={viewEventId} onClose={() => setViewEventId(null)} />
 
       <ConfirmDialog
         open={deleteId !== null}

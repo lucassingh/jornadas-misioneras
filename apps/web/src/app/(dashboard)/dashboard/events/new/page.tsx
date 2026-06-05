@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -27,7 +29,7 @@ export default async function NewEventPage() {
           </IconButton>
         }
       />
-      <Box sx={{ px: 3, pb: 3, maxWidth: 760, mx: 'auto' }}>
+      <Box sx={{ px: { xs: 2, md: 6 }, pb: 6 }}>
         <EventForm countries={countries} provinces={provinces} locations={locations} />
       </Box>
     </>
