@@ -21,7 +21,8 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
-import { Plus, Pencil, Trash2, MapPin, Eye, Building2, Globe, Calendar } from 'lucide-react';
+import Divider from '@mui/material/Divider';
+import { Plus, Pencil, Trash2, MapPin, Eye, Building2, Globe, Calendar, Tag, AlignLeft } from 'lucide-react';
 import { ConfirmDialog, COLOR_TOKENS } from '@jornadas/ui';
 import { Jumbotron } from '../Jumbotron';
 import { PaginationBar } from '../PaginationBar';
@@ -31,7 +32,11 @@ import { DetailModal } from '../DetailModal';
 interface Country { id: number; name: string }
 interface Province { id: number; name: string; country: Country }
 interface LocationRow {
-  id: number; name: string; provinceId: number;
+  id: number;
+  name: string;
+  title?: string | null;
+  description?: string | null;
+  provinceId: number;
   province: Province;
   _count: { events: number };
 }
@@ -69,13 +74,31 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<LocationRow | null>(null);
   const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [provinceId, setProvinceId] = useState<number | ''>('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewItem, setViewItem] = useState<LocationRow | null>(null);
 
-  const openCreate = () => { setEditing(null); setName(''); setProvinceId(''); setDialogOpen(true); };
-  const openEdit = (l: LocationRow) => { setEditing(l); setName(l.name); setProvinceId(l.provinceId); setDialogOpen(true); };
+  const openCreate = () => {
+    setEditing(null);
+    setName('');
+    setTitle('');
+    setDescription('');
+    setProvinceId('');
+    setDialogOpen(true);
+  };
+
+  const openEdit = (l: LocationRow) => {
+    setEditing(l);
+    setName(l.name);
+    setTitle(l.title ?? '');
+    setDescription(l.description ?? '');
+    setProvinceId(l.provinceId);
+    setDialogOpen(true);
+  };
+
   const openView = (l: LocationRow) => setViewItem(l);
 
   const handleSave = async () => {
@@ -83,10 +106,17 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
     setLoading(true);
     const toastId = toast.loading(editing ? 'Actualizando...' : 'Creando...');
     try {
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        provinceId: Number(provinceId),
+      };
+      if (title.trim()) body.title = title.trim();
+      if (description.trim()) body.description = description.trim();
+
       const res = await fetch(editing ? `/api/locations/${editing.id}` : '/api/locations', {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), provinceId: Number(provinceId) }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         toast.success(editing ? 'Localidad actualizada' : 'Localidad creada', { id: toastId });
@@ -108,13 +138,17 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
       const res = await fetch(`/api/locations/${deleteId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Localidad eliminada', { id: toastId });
+        setDeleteId(null);
         startTransition(() => router.refresh());
       } else {
-        toast.error('Error al eliminar', { id: toastId });
+        const body = await res.json().catch(() => null);
+        const msg = body?.error ?? 'Error al eliminar';
+        toast.error(msg, { id: toastId });
+        setDeleteId(null);
       }
     } catch {
       toast.error('Error de conexión', { id: toastId });
-    } finally { setLoading(false); setDeleteId(null); }
+    } finally { setLoading(false); }
   };
 
   return (
@@ -134,6 +168,7 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
             <TableHead>
               <TableRow>
                 <TableCell>Localidad</TableCell>
+                <TableCell>Título</TableCell>
                 <TableCell>Provincia</TableCell>
                 <TableCell>País</TableCell>
                 <TableCell align="center">Eventos</TableCell>
@@ -146,6 +181,7 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
                   rows={Math.max(3, locations.length)}
                   columns={[
                     { type: 'avatar+text', width: 120 },
+                    { type: 'text', width: 140 },
                     { type: 'text', width: 100 },
                     { type: 'badge', width: 80 },
                     { type: 'stat', align: 'center' },
@@ -170,6 +206,13 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
                           </Avatar>
                           <Typography fontWeight={600}>{l.name}</Typography>
                         </Box>
+                      </TableCell>
+                      <TableCell>
+                        {l.title ? (
+                          <Typography variant="body2" fontWeight={500}>{l.title}</Typography>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>—</Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">{l.province.name}</Typography>
@@ -217,7 +260,7 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
                   ))}
                   {locations.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                         <MapPin size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
                         <Typography color="text.secondary">No hay localidades cargadas</Typography>
                       </TableCell>
@@ -232,17 +275,49 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
       </Box>
 
       {/* Modal crear/editar */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Editar Localidad' : 'Nueva Localidad'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
-          <TextField select label="Provincia" value={provinceId} onChange={(e) => setProvinceId(Number(e.target.value))} fullWidth>
-            {provinces.map((p) => <MenuItem key={p.id} value={p.id}>{p.name} ({p.country.name})</MenuItem>)}
+          <TextField
+            select
+            label="Provincia"
+            value={provinceId}
+            onChange={(e) => setProvinceId(Number(e.target.value))}
+            fullWidth
+          >
+            {provinces.map((p) => (
+              <MenuItem key={p.id} value={p.id}>{p.name} ({p.country.name})</MenuItem>
+            ))}
           </TextField>
-          <TextField autoFocus label="Nombre" fullWidth value={name} onChange={(e) => setName(e.target.value)} />
+          <TextField
+            autoFocus
+            label="Nombre"
+            fullWidth
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            helperText="Nombre corto de la localidad (ciudad, sede, etc.)"
+          />
+          <TextField
+            label="Título"
+            fullWidth
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            helperText="Título descriptivo para mostrar en la landing (opcional)"
+          />
+          <TextField
+            label="Descripción"
+            fullWidth
+            multiline
+            minRows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            helperText="Descripción pública de la localidad (opcional)"
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} variant="text">Cancelar</Button>
-          <Button onClick={handleSave} variant="contained" disabled={loading || !name.trim() || !provinceId}>
+          <Button type="button" onClick={() => setDialogOpen(false)} variant="text">Cancelar</Button>
+          <Button type="button" onClick={handleSave} variant="contained" disabled={loading || !name.trim() || !provinceId}>
             {loading ? 'Guardando...' : 'Guardar'}
           </Button>
         </DialogActions>
@@ -263,24 +338,14 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
           <>
             {/* Jerarquía */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.5 }}>
-              <Box
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
-                  borderRadius: 2, bgcolor: 'action.hover',
-                }}
-              >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
                 <Building2 size={15} style={{ opacity: 0.5 }} />
                 <Box>
                   <Typography variant="caption" color="text.secondary">Provincia</Typography>
                   <Typography variant="body2" fontWeight={600}>{viewItem.province.name}</Typography>
                 </Box>
               </Box>
-              <Box
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
-                  borderRadius: 2, bgcolor: 'action.hover',
-                }}
-              >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
                 <Globe size={15} style={{ opacity: 0.5 }} />
                 <Box>
                   <Typography variant="caption" color="text.secondary">País</Typography>
@@ -288,6 +353,35 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
                 </Box>
               </Box>
             </Box>
+
+            {/* Título y descripción */}
+            {(viewItem.title || viewItem.description) && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {viewItem.title && (
+                    <Box sx={{ display: 'flex', gap: 1.5 }}>
+                      <Tag size={15} style={{ opacity: 0.5, flexShrink: 0, marginTop: 2 }} />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Título</Typography>
+                        <Typography variant="body2" fontWeight={600}>{viewItem.title}</Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  {viewItem.description && (
+                    <Box sx={{ display: 'flex', gap: 1.5 }}>
+                      <AlignLeft size={15} style={{ opacity: 0.5, flexShrink: 0, marginTop: 2 }} />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Descripción</Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{viewItem.description}</Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              </>
+            )}
+
+            <Divider sx={{ my: 2 }} />
 
             {/* Stat eventos */}
             <Box

@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const createLocationSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
+  title: z.string().max(200).optional(),
+  description: z.string().max(2000).optional(),
   provinceId: z.number().int().positive('Debe seleccionar una provincia'),
 });
 

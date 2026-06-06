@@ -51,8 +51,21 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!isAdmin(user.role)) return forbidden();
 
   const id = parseInt(params.id, 10);
-  const exists = await prisma.country.findUnique({ where: { id } });
+  const exists = await prisma.country.findUnique({
+    where: { id },
+    include: { _count: { select: { provinces: true, events: true } } },
+  });
   if (!exists) return notFound('País');
+
+  const parts: string[] = [];
+  if (exists._count.provinces > 0) parts.push(`${exists._count.provinces} provincia(s)`);
+  if (exists._count.events > 0) parts.push(`${exists._count.events} evento(s)`);
+  if (parts.length > 0) {
+    return NextResponse.json(
+      { error: `No se puede eliminar: tiene ${parts.join(' y ')} asociados` },
+      { status: 409 },
+    );
+  }
 
   await prisma.country.delete({ where: { id } });
   return NextResponse.json({ data: { message: 'País eliminado' } });

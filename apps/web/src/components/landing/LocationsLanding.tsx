@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
+import type { PublicLocation } from '@/lib/queries/public-locations';
 
 const BG      = '#f5f5f0';
 const BG_DARK = '#0d0c0c';
@@ -12,7 +13,11 @@ const EASE    = [0.76, 0, 0.24, 1] as const;
 const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_BODY    = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 
-export function LocationsLanding() {
+interface Props {
+  locations: PublicLocation[];
+}
+
+export function LocationsLanding({ locations }: Props) {
   return (
     <Box
       id="sedes"
@@ -98,79 +103,98 @@ export function LocationsLanding() {
         </Box>
       </motion.div>
 
-      {/* Placeholder grilla de eventos — se reemplaza con datos de /api/events/public */}
-      <Box
-        sx={{
-          mt: { xs: '52px', md: '72px' },
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-          gap: '1px',
-          backgroundColor: 'rgba(13,12,12,0.08)',
-          border: '1px solid rgba(13,12,12,0.08)',
-          overflow: 'hidden',
-        }}
-      >
-        {Array.from({ length: 3 }).map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0 }}
-            transition={{ duration: 0.6, delay: i * 0.1, ease: EASE }}
-          >
-            <Box
-              sx={{
-                backgroundColor: BG,
-                p: { xs: '32px 24px', md: '40px 36px' },
-                minHeight: '220px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                transition: 'background-color 0.25s',
-                '&:hover': { backgroundColor: 'rgba(13,12,12,0.04)' },
-              }}
+      {/* Grilla de localidades */}
+      {locations.length > 0 ? (
+        <Box
+          sx={{
+            mt: { xs: '52px', md: '72px' },
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: '1px',
+            backgroundColor: 'rgba(13,12,12,0.08)',
+            border: '1px solid rgba(13,12,12,0.08)',
+            overflow: 'hidden',
+          }}
+        >
+          {locations.map((loc, i) => (
+            <motion.div
+              key={loc.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0 }}
+              transition={{ duration: 0.6, delay: Math.min(i * 0.1, 0.4), ease: EASE }}
             >
               <Box
                 sx={{
-                  fontFamily: FONT_BODY,
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: 'rgba(13,12,12,0.2)',
+                  backgroundColor: BG,
+                  p: { xs: '32px 24px', md: '40px 36px' },
+                  minHeight: '220px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  cursor: 'default',
+                  transition: 'background-color 0.25s',
+                  '&:hover': { backgroundColor: 'rgba(13,12,12,0.04)' },
                 }}
               >
-                Próximamente
-              </Box>
-              <Box>
-                <Box
-                  sx={{
-                    fontFamily: FONT_DISPLAY,
-                    fontSize: { xs: '22px', md: '26px' },
-                    fontWeight: 400,
-                    color: BG_DARK,
-                    lineHeight: 1.1,
-                    mb: '10px',
-                  }}
-                >
-                  — Sede disponible
-                </Box>
                 <Box
                   sx={{
                     fontFamily: FONT_BODY,
-                    fontSize: '13px',
-                    color: MUTED,
-                    letterSpacing: '0.06em',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: PRIMARY,
                   }}
                 >
-                  Los eventos se cargan desde el dashboard
+                  {loc.province.country.name} · {loc.province.name}
+                </Box>
+                <Box>
+                  <Box
+                    sx={{
+                      fontFamily: FONT_DISPLAY,
+                      fontSize: { xs: '22px', md: '26px' },
+                      fontWeight: 400,
+                      color: BG_DARK,
+                      lineHeight: 1.1,
+                      mb: '10px',
+                    }}
+                  >
+                    {loc.title ?? loc.name}
+                  </Box>
+                  {loc.description && (
+                    <Box
+                      sx={{
+                        fontFamily: FONT_BODY,
+                        fontSize: '13px',
+                        color: MUTED,
+                        letterSpacing: '0.06em',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {loc.description}
+                    </Box>
+                  )}
                 </Box>
               </Box>
-            </Box>
-          </motion.div>
-        ))}
-      </Box>
+            </motion.div>
+          ))}
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            mt: { xs: '52px', md: '72px' },
+            fontFamily: FONT_BODY,
+            fontSize: '15px',
+            color: MUTED,
+          }}
+        >
+          Próximamente se anunciarán las sedes.
+        </Box>
+      )}
     </Box>
   );
 }
