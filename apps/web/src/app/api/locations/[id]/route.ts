@@ -35,8 +35,18 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!isAdmin(user.role)) return forbidden();
 
   const id = parseInt(params.id, 10);
-  const exists = await prisma.location.findUnique({ where: { id } });
+  const exists = await prisma.location.findUnique({
+    where: { id },
+    include: { _count: { select: { events: true } } },
+  });
   if (!exists) return notFound('Localidad');
+
+  if (exists._count.events > 0) {
+    return NextResponse.json(
+      { error: `No se puede eliminar: tiene ${exists._count.events} evento(s) asociado(s)` },
+      { status: 409 },
+    );
+  }
 
   await prisma.location.delete({ where: { id } });
   return NextResponse.json({ data: { message: 'Localidad eliminada' } });

@@ -140,13 +140,17 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
       const res = await fetch(`/api/provinces/${deleteId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Provincia eliminada', { id: toastId });
+        setDeleteId(null);
         startTransition(() => router.refresh());
       } else {
-        toast.error('Error al eliminar', { id: toastId });
+        const body = await res.json().catch(() => null);
+        const msg = body?.error ?? 'Error al eliminar';
+        toast.error(msg, { id: toastId });
+        setDeleteId(null);
       }
     } catch {
       toast.error('Error de conexión', { id: toastId });
-    } finally { setLoading(false); setDeleteId(null); }
+    } finally { setLoading(false); }
   };
 
   return (

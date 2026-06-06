@@ -137,13 +137,17 @@ export function CountriesManager({ countries, page, totalPages, total, pageSize 
       const res = await fetch(`/api/countries/${deleteId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('País eliminado', { id: toastId });
+        setDeleteId(null);
         startTransition(() => router.refresh());
       } else {
-        toast.error('Error al eliminar', { id: toastId });
+        const body = await res.json().catch(() => null);
+        const msg = body?.error ?? 'Error al eliminar';
+        toast.error(msg, { id: toastId });
+        setDeleteId(null);
       }
     } catch {
       toast.error('Error de conexión', { id: toastId });
-    } finally { setLoading(false); setDeleteId(null); }
+    } finally { setLoading(false); }
   };
 
   return (
