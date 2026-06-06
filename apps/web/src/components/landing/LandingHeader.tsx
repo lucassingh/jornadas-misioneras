@@ -11,7 +11,6 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { useColorMode } from '@/context/ColorModeContext';
 
 const navLinks = [
@@ -65,28 +64,11 @@ export function LandingHeader() {
           ))}
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Tooltip title={mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
-            <IconButton onClick={toggleColorMode} sx={{ color: 'text.primary' }}>
-              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-            </IconButton>
-          </Tooltip>
-
-          <SignedOut>
-            <Button component={Link} href="/sign-in" variant="outlined" size="small">
-              Ingresar
-            </Button>
-            <Button component={Link} href="/sign-up" variant="contained" size="small">
-              Registrarse
-            </Button>
-          </SignedOut>
-          <SignedIn>
-            <Button component={Link} href="/dashboard" variant="outlined" size="small">
-              Dashboard
-            </Button>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-        </Box>
+        <Tooltip title={mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
+          <IconButton onClick={toggleColorMode} sx={{ color: 'text.primary' }}>
+            {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+        </Tooltip>
       </Toolbar>
     </AppBar>
   );
