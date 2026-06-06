@@ -1,12 +1,10 @@
-import { LandingHeader } from '@/components/landing/LandingHeader';
-import { LandingFooter } from '@/components/landing/LandingFooter';
+import { NavbarLanding } from '@/components/landing/NavbarLanding';
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <LandingHeader />
+    <div style={{ backgroundColor: '#0d0c0c', minHeight: '100dvh', color: '#f5f5f0' }}>
+      <NavbarLanding />
       <main>{children}</main>
-      <LandingFooter />
-    </>
+    </div>
   );
 }

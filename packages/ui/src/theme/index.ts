@@ -18,7 +18,7 @@ declare module '@mui/material/styles' {
 
 export const COLOR_TOKENS = {
   brand: '#2235fd',
-  secondary: '#efdfb4',
+  secondary: '#84f649',
   darkBg: '#241e21',
   sidebarDark: '#141014',
   cardDark: '#2e2829',
