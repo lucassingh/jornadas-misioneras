@@ -169,7 +169,7 @@ export function AboutLanding() {
               mt: '28px',
               fontFamily: FONT_BODY,
               fontSize: { xs: '15px', md: '17px' },
-              color: MUTED,
+              color: { xs: FG, md: MUTED },
               lineHeight: 1.68,
               maxWidth: '540px',
             }}
@@ -302,7 +302,7 @@ export function AboutLanding() {
                     sx={{
                       fontFamily: FONT_BODY,
                       fontSize: { xs: '16px', md: '18px', lg: '20px' },
-                      color: MUTED,
+                      color: { xs: FG, md: MUTED },
                       lineHeight: 1.72,
                       maxWidth: '460px',
                     }}
@@ -327,11 +327,13 @@ export function AboutLanding() {
                   </Box>
                 </Box>
 
-                {/* RIGHT — image */}
+                {/* RIGHT — image: columna en desktop, fondo absoluto en mobile */}
                 <Box
                   sx={{
-                    display: { xs: 'none', md: 'block' },
-                    position: 'relative',
+                    position: { xs: 'absolute', md: 'relative' },
+                    inset: { xs: 0, md: 'auto' },
+                    zIndex: { xs: 0, md: 'auto' },
+                    opacity: { xs: 0.22, md: 1 },
                     overflow: 'hidden',
                     backgroundColor: BG,
                   }}

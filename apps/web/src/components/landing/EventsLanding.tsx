@@ -3,59 +3,42 @@
 import { useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import Box from '@mui/material/Box';
-import type { PublicLocation } from '@/lib/queries/public-locations';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import type { PublicEvent } from '@/lib/queries/public-events';
 
-const BG      = '#f5f5f0';
-const BG_DARK = '#0d0c0c';
-const PRIMARY = '#2235fd';
-const ACCENT  = '#84f649';
-const MUTED   = 'rgba(13,12,12,0.35)';
-const LINE    = 'rgba(13,12,12,0.09)';
+const BG      = '#2235fd';   // primary — fondo de la sección
+const FG      = '#f5f5f0';   // texto principal
+const ACCENT  = '#84f649';   // verde
+const MUTED   = 'rgba(245,245,240,0.45)';
+const LINE    = 'rgba(245,245,240,0.12)';
 const EASE    = [0.76, 0, 0.24, 1] as const;
 
 const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_BODY    = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 
-// ─── Agrupación por provincia ─────────────────────────────────────────────────
-
-interface IndexedLocation {
-  location: PublicLocation;
-  absoluteIndex: number;
-}
-interface ProvinceGroup {
-  province: string;
-  country: string;
-  items: IndexedLocation[];
-}
-
-function groupByProvince(locations: PublicLocation[]): ProvinceGroup[] {
-  const map = new Map<string, ProvinceGroup>();
-  locations.forEach((loc, i) => {
-    const key = `${loc.province.country.name}__${loc.province.name}`;
-    if (!map.has(key)) {
-      map.set(key, { province: loc.province.name, country: loc.province.country.name, items: [] });
-    }
-    map.get(key)!.items.push({ location: loc, absoluteIndex: i });
-  });
-  return Array.from(map.values());
+function formatDateRange(start: Date, end: Date): string {
+  const s = format(new Date(start), "d MMM", { locale: es });
+  const e = format(new Date(end),   "d MMM yyyy", { locale: es });
+  return `${s} – ${e}`;
 }
 
 // ─── Cursor custom ────────────────────────────────────────────────────────────
 
-function SectionCursor({ visible }: { visible: boolean }) {
+function EventCursor({ visible }: { visible: boolean }) {
   return (
     <motion.div
       animate={{ scale: visible ? 1 : 0, opacity: visible ? 1 : 0 }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
       style={{
-        width: '60px',
-        height: '60px',
+        width: '64px',
+        height: '64px',
         borderRadius: '50%',
-        border: `1.5px solid ${PRIMARY}`,
+        border: `1.5px solid ${ACCENT}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(245,245,240,0.1)',
+        backgroundColor: 'rgba(34,53,253,0.15)',
         backdropFilter: 'blur(6px)',
       }}
     >
@@ -66,7 +49,7 @@ function SectionCursor({ visible }: { visible: boolean }) {
           fontWeight: 700,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
-          color: PRIMARY,
+          color: ACCENT,
           userSelect: 'none',
         }}
       >
@@ -76,59 +59,24 @@ function SectionCursor({ visible }: { visible: boolean }) {
   );
 }
 
-// ─── Header de provincia ──────────────────────────────────────────────────────
+// ─── Fila de evento ───────────────────────────────────────────────────────────
 
-function ProvinceHeader({ province, animDelay }: { province: string; animDelay: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0 }}
-      transition={{ duration: 0.5, delay: animDelay, ease: EASE }}
-    >
-      <Box
-        sx={{
-          mt: { xs: '44px', md: '60px' },
-          mb: '4px',
-          pl: '18px',
-          py: '10px',
-          borderLeft: `2px solid ${ACCENT}`,
-        }}
-      >
-        <Box
-          sx={{
-            fontFamily: FONT_DISPLAY,
-            fontSize: { xs: '6.5vw', sm: '4vw', md: '2.6vw', lg: '2.2vw' },
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
-            lineHeight: 1,
-            color: PRIMARY,
-            textTransform: 'uppercase',
-          }}
-        >
-          {province}
-        </Box>
-      </Box>
-    </motion.div>
-  );
-}
-
-// ─── Fila de localidad ────────────────────────────────────────────────────────
-
-function LocationRow({
-  location,
-  absoluteIndex,
+function EventRow({
+  event,
+  index,
   animDelay,
   onCursorEnter,
   onCursorLeave,
-}: IndexedLocation & {
+}: {
+  event: PublicEvent;
+  index: number;
   animDelay: number;
   onCursorEnter: () => void;
   onCursorLeave: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const label = String(absoluteIndex + 1).padStart(2, '0');
-  const hasDetail = !!(location.title || location.description);
+  const label = String(index + 1).padStart(2, '0');
+  const hasDetail = !!(event.description || event.pricing);
 
   const handleEnter = () => { setOpen(true); if (hasDetail) onCursorEnter(); };
   const handleLeave = () => { setOpen(false); onCursorLeave(); };
@@ -145,62 +93,67 @@ function LocationRow({
         onMouseLeave={handleLeave}
         sx={{
           cursor: hasDetail ? 'none' : 'default',
-          backgroundColor: open ? 'rgba(13,12,12,0.025)' : 'transparent',
+          backgroundColor: open ? 'rgba(245,245,240,0.05)' : 'transparent',
           transition: 'background-color 0.28s',
         }}
       >
-        {/* ── Fila default: 3 columnas ── */}
+        {/* ── Fila principal: 3 columnas ── */}
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '2fr 2.2fr 1fr' },
             alignItems: 'center',
-            gap: { xs: '10px', md: '40px' },
-            py: { xs: '22px', md: '32px' },
+            gap: { xs: '8px', md: '40px' },
+            py: { xs: '20px', md: '28px' },
           }}
         >
-          {/* Col 1: número (se oculta al abrir) + título */}
+          {/* Col 1: índice + título */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
             <motion.span
-              animate={{ opacity: open ? 0 : 1, color: ACCENT }}
+              animate={{ opacity: open ? 0 : 1 }}
               transition={{ duration: 0.15 }}
               style={{
                 fontFamily: FONT_BODY,
                 fontSize: '11px',
                 fontWeight: 700,
                 letterSpacing: '0.2em',
-                color: 'rgba(13,12,12,0.28)',
+                color: 'rgba(245,245,240,0.3)',
                 flexShrink: 0,
-                display: 'inline-block',
                 minWidth: '28px',
+                display: 'inline-block',
               }}
             >
               {label}
             </motion.span>
 
             <motion.span
-              animate={{ color: open ? PRIMARY : BG_DARK }}
+              animate={{ color: open ? ACCENT : FG }}
               transition={{ duration: 0.22 }}
               style={{
                 fontFamily: FONT_DISPLAY,
-                fontSize: 'clamp(22px, 3.2vw, 46px)',
+                fontSize: 'clamp(20px, 3vw, 44px)',
                 fontWeight: 400,
                 letterSpacing: '-0.025em',
                 lineHeight: 1,
               }}
             >
-              {location.name}
+              {event.title}
             </motion.span>
           </Box>
 
           {/* Col 2: vacía en default */}
           <Box sx={{ display: { xs: 'none', md: 'block' } }} />
 
-          {/* Col 3: país + badge + flecha — se oculta al expandir */}
+          {/* Col 3: fecha + localidad — se oculta al expandir */}
           <motion.div
             animate={{ opacity: open ? 0 : 1 }}
             transition={{ duration: 0.15 }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: '4px',
+            }}
           >
             <Box
               sx={{
@@ -210,62 +163,28 @@ function LocationRow({
                 fontWeight: 700,
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
-                color: MUTED,
+                color: ACCENT,
               }}
             >
-              {location.province.country.name}
+              {formatDateRange(event.startDate, event.endDate)}
             </Box>
-
-            {location._count.events > 0 && (
-              <Box
-                sx={{
-                  display: { xs: 'none', md: 'block' },
-                  fontFamily: FONT_BODY,
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                  color: BG_DARK,
-                  backgroundColor: ACCENT,
-                  px: '8px',
-                  py: '4px',
-                  borderRadius: '2px',
-                  flexShrink: 0,
-                }}
-              >
-                {location._count.events} evento{location._count.events !== 1 ? 's' : ''}
-              </Box>
-            )}
-
-            <motion.span
-              animate={{ opacity: open ? 0 : 0, y: open ? 0 : -4 }}
-              transition={{ duration: 0.2 }}
-              style={{ fontFamily: FONT_BODY, fontSize: '16px', color: PRIMARY, display: 'inline-block', flexShrink: 0 }}
-            >
-              ↓
-            </motion.span>
-          </motion.div>
-
-          {/* Mobile: descripción debajo */}
-          {(location.description ?? location.title) && (
             <Box
               sx={{
-                display: { xs: '-webkit-box', md: 'none' },
+                display: { xs: 'none', md: 'block' },
                 fontFamily: FONT_BODY,
-                fontSize: '13px',
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
                 color: MUTED,
-                lineHeight: 1.65,
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
               }}
             >
-              {location.description ?? location.title}
+              {event.location.name} · {event.province.name}
             </Box>
-          )}
+          </motion.div>
         </Box>
 
-        {/* ── Panel expandible: misma grilla 3 cols ── */}
+        {/* ── Panel expandible: misma grilla ── */}
         <AnimatePresence initial={false}>
           {open && hasDetail && (
             <motion.div
@@ -285,7 +204,7 @@ function LocationRow({
                   pb: { xs: '28px', md: '40px' },
                 }}
               >
-                {/* Col 1: número gigante + título, lado a lado */}
+                {/* Col 1: número gigante + título */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.6, y: -8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -307,30 +226,43 @@ function LocationRow({
                     >
                       {label}
                     </Box>
-                    {location.title && (
+                    <Box>
                       <Box
                         sx={{
-                          fontFamily: FONT_DISPLAY,
-                          fontSize: { xs: '16px', md: '20px', lg: '24px' },
-                          fontWeight: 400,
-                          letterSpacing: '-0.015em',
-                          color: BG_DARK,
-                          lineHeight: 1.15,
+                          fontFamily: FONT_BODY,
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          letterSpacing: '0.18em',
+                          textTransform: 'uppercase',
+                          color: ACCENT,
+                          mb: '6px',
                         }}
                       >
-                        {location.title}
+                        {formatDateRange(event.startDate, event.endDate)}
                       </Box>
-                    )}
+                      <Box
+                        sx={{
+                          fontFamily: FONT_BODY,
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          letterSpacing: '0.16em',
+                          textTransform: 'uppercase',
+                          color: MUTED,
+                        }}
+                      >
+                        {event.location.name} · {event.province.name}
+                      </Box>
+                    </Box>
                   </Box>
                 </motion.div>
 
-                {/* Col 2: descripción completa */}
+                {/* Col 2: descripción */}
                 <motion.div
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.1, ease: EASE }}
                 >
-                  {location.description && (
+                  {event.description && (
                     <Box
                       sx={{
                         fontFamily: FONT_BODY,
@@ -339,12 +271,12 @@ function LocationRow({
                         lineHeight: 1.72,
                       }}
                     >
-                      {location.description}
+                      {event.description}
                     </Box>
                   )}
                 </motion.div>
 
-                {/* Col 3: país + badge */}
+                {/* Col 3: precio */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -361,33 +293,22 @@ function LocationRow({
                     <Box
                       sx={{
                         fontFamily: FONT_BODY,
-                        fontSize: '11px',
+                        fontSize: '12px',
                         fontWeight: 700,
-                        letterSpacing: '0.18em',
+                        letterSpacing: '0.14em',
                         textTransform: 'uppercase',
-                        color: MUTED,
+                        color: FG,
+                        border: `1px solid rgba(245,245,240,0.25)`,
+                        px: '12px',
+                        py: '6px',
+                        borderRadius: '2px',
+                        display: 'inline-block',
                       }}
                     >
-                      {location.province.country.name}
+                      {event.pricing
+                        ? `Desde $${Number(event.pricing.registrationEarlyAmount).toLocaleString('es-AR')}`
+                        : 'Gratuito'}
                     </Box>
-                    {location._count.events > 0 && (
-                      <Box
-                        sx={{
-                          fontFamily: FONT_BODY,
-                          fontSize: '9px',
-                          fontWeight: 700,
-                          letterSpacing: '0.14em',
-                          textTransform: 'uppercase',
-                          color: BG_DARK,
-                          backgroundColor: ACCENT,
-                          px: '8px',
-                          py: '4px',
-                          borderRadius: '2px',
-                        }}
-                      >
-                        {location._count.events} evento{location._count.events !== 1 ? 's' : ''}
-                      </Box>
-                    )}
                   </Box>
                 </motion.div>
               </Box>
@@ -414,7 +335,7 @@ function EmptyState() {
         letterSpacing: '-0.02em',
       }}
     >
-      Próximamente se anunciarán las sedes.
+      Próximamente se anunciarán los eventos.
     </Box>
   );
 }
@@ -422,12 +343,10 @@ function EmptyState() {
 // ─── Export principal ─────────────────────────────────────────────────────────
 
 interface Props {
-  locations: PublicLocation[];
+  events: PublicEvent[];
 }
 
-export function LocationsLanding({ locations }: Props) {
-  const groups = groupByProvince(locations);
-
+export function EventsLanding({ events }: Props) {
   const mouseX = useMotionValue(-200);
   const mouseY = useMotionValue(-200);
   const springX = useSpring(mouseX, { stiffness: 380, damping: 38 });
@@ -441,7 +360,7 @@ export function LocationsLanding({ locations }: Props) {
 
   return (
     <Box
-      id="sedes"
+      id="eventos"
       component="section"
       onMouseMove={handleMouseMove}
       sx={{
@@ -452,7 +371,7 @@ export function LocationsLanding({ locations }: Props) {
         position: 'relative',
       }}
     >
-      {/* Cursor custom — posición fija, controlado por spring */}
+      {/* Cursor custom */}
       <motion.div
         style={{
           position: 'fixed',
@@ -464,7 +383,7 @@ export function LocationsLanding({ locations }: Props) {
           zIndex: 9999,
         }}
       >
-        <SectionCursor visible={cursorVisible} />
+        <EventCursor visible={cursorVisible} />
       </motion.div>
 
       {/* Eyebrow */}
@@ -485,18 +404,18 @@ export function LocationsLanding({ locations }: Props) {
             fontWeight: 700,
             letterSpacing: '0.22em',
             textTransform: 'uppercase',
-            color: PRIMARY,
+            color: ACCENT,
           }}
         >
-          <Box sx={{ width: '20px', height: '1.5px', backgroundColor: PRIMARY, flexShrink: 0 }} />
-          Sedes
+          <Box sx={{ width: '20px', height: '1.5px', backgroundColor: ACCENT, flexShrink: 0 }} />
+          Eventos
         </Box>
       </motion.div>
 
       {/* Headline */}
       {[
-        { text: 'Donde la misión', color: BG_DARK, delay: 0.08 },
-        { text: 'cobra vida.',     color: PRIMARY,  delay: 0.2  },
+        { text: 'Próximos eventos',  color: FG,     delay: 0.08 },
+        { text: 'misioneros.',       color: ACCENT,  delay: 0.2  },
       ].map(({ text, color, delay }) => (
         <motion.div
           key={text}
@@ -530,6 +449,7 @@ export function LocationsLanding({ locations }: Props) {
         <Box
           sx={{
             mt: '28px',
+            mb: { xs: '48px', md: '72px' },
             fontFamily: FONT_BODY,
             fontSize: { xs: '15px', md: '17px' },
             color: MUTED,
@@ -537,34 +457,24 @@ export function LocationsLanding({ locations }: Props) {
             maxWidth: '540px',
           }}
         >
-          Descubrí dónde podés sumarte y vivir la experiencia de servir.
+          Encontrá el evento más cercano y sumate a la misión.
         </Box>
       </motion.div>
 
-      <Box sx={{ mt: { xs: '48px', md: '72px' } }} />
-
-      {/* Lista agrupada por provincia */}
-      {locations.length === 0 ? (
+      {/* Lista de eventos */}
+      {events.length === 0 ? (
         <EmptyState />
       ) : (
-        <Box>
-          {groups.map((group, gIdx) => (
-            <Box key={`${group.country}__${group.province}`}>
-              <ProvinceHeader
-                province={group.province}
-                animDelay={Math.min(gIdx * 0.1, 0.3)}
-              />
-              {group.items.map(({ location, absoluteIndex }, lIdx) => (
-                <LocationRow
-                  key={location.id}
-                  location={location}
-                  absoluteIndex={absoluteIndex}
-                  animDelay={Math.min(0.05 + lIdx * 0.07, 0.35)}
-                  onCursorEnter={() => setCursorVisible(true)}
-                  onCursorLeave={() => setCursorVisible(false)}
-                />
-              ))}
-            </Box>
+        <Box sx={{ borderTop: `1px solid ${LINE}` }}>
+          {events.map((event, i) => (
+            <EventRow
+              key={event.id}
+              event={event}
+              index={i}
+              animDelay={Math.min(i * 0.07, 0.35)}
+              onCursorEnter={() => setCursorVisible(true)}
+              onCursorLeave={() => setCursorVisible(false)}
+            />
           ))}
         </Box>
       )}
