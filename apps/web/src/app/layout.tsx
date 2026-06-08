@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${archivoBlack.variable} ${robotoFlex.variable}`}>
+    <html lang="es" className={`${archivoBlack.variable} ${robotoFlex.variable}`} style={{ overflowAnchor: 'none' }}>
       <body>
         <Providers>{children}</Providers>
         <Toaster

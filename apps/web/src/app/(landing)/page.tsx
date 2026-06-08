@@ -17,8 +17,12 @@ export default async function HomePage() {
     <>
       <HeroLanding />
       <AboutLanding />
-      <LocationsLanding locations={locations} />
+      <LocationsLanding
+        locations={locations}
+        futureEventLocationIds={events.map(e => e.location.id)}
+      />
       <EventsLanding events={events} />
+      <section style={{ backgroundColor: '#f5f5f0', minHeight: '100vh' }} />
     </>
   );
 }

@@ -6,7 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
 import { getTheme } from '@jornadas/ui';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ColorModeProvider, useColorMode } from '@/context/ColorModeContext';
 
 function MuiThemeProvider({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,11 @@ function MuiThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    window.history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
