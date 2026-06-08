@@ -113,6 +113,26 @@ function ProvinceHeader({ province, animDelay }: { province: string; animDelay: 
   );
 }
 
+// ─── Navegación hacia eventos ─────────────────────────────────────────────────
+
+function toSlugId(str: string): string {
+  return str.toLowerCase().normalize('NFD').replace(/̀-ͯ/g, '').replace(/\s+/g, '-');
+}
+
+const NAV_OFFSET = 192; // navbar height (72px) + breathing room
+
+function navigateToEvent(locationId: number, provinceName: string): void {
+  window.dispatchEvent(new CustomEvent('jm:activate-location', { detail: { locationId } }));
+  setTimeout(() => {
+    const el =
+      document.getElementById(`slider-${toSlugId(provinceName)}`) ??
+      document.getElementById('eventos');
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }, 80);
+}
+
 // ─── Fila de localidad ────────────────────────────────────────────────────────
 
 function LocationRow({
@@ -121,17 +141,42 @@ function LocationRow({
   animDelay,
   onCursorEnter,
   onCursorLeave,
+  onNavigate,
+  hasEvent,
 }: IndexedLocation & {
   animDelay: number;
   onCursorEnter: () => void;
   onCursorLeave: () => void;
+  onNavigate: () => void;
+  hasEvent: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [fastClose, setFastClose] = useState(false);
   const label = String(absoluteIndex + 1).padStart(2, '0');
   const hasDetail = !!(location.title || location.description);
+  const hasEvents = hasEvent;
 
-  const handleEnter = () => { setOpen(true); if (hasDetail) onCursorEnter(); };
+  const handleEnter = () => { setFastClose(false); setOpen(true); if (hasDetail) onCursorEnter(); };
   const handleLeave = () => { setOpen(false); onCursorLeave(); };
+
+  const doNavigate = () => {
+    // Cierra panel instantáneo + deshabilita pointer-events en toda la sección
+    setFastClose(true);
+    setOpen(false);
+    onCursorLeave();
+    onNavigate(); // desactiva pointer-events en LocationsLanding para evitar onMouseEnter en otras filas durante el scroll
+    setTimeout(() => {
+      navigateToEvent(location.id, location.province.name);
+      setFastClose(false);
+    }, 50);
+  };
+
+  const handleClick = () => { if (hasEvents) doNavigate(); };
+
+  const handleNavigateClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    doNavigate();
+  };
 
   return (
     <motion.div
@@ -143,8 +188,9 @@ function LocationRow({
       <Box
         onMouseEnter={handleEnter}
         onMouseLeave={handleLeave}
+        onClick={handleClick}
         sx={{
-          cursor: hasDetail ? 'none' : 'default',
+          cursor: hasDetail ? 'none' : (hasEvents ? 'pointer' : 'default'),
           backgroundColor: open ? 'rgba(13,12,12,0.025)' : 'transparent',
           transition: 'background-color 0.28s',
         }}
@@ -273,7 +319,7 @@ function LocationRow({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: fastClose ? 0 : 0.35, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: 'hidden' }}
             >
               <Box
@@ -344,7 +390,7 @@ function LocationRow({
                   )}
                 </motion.div>
 
-                {/* Col 3: país + badge */}
+                {/* Col 3: país + badge + botón Ver evento */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -370,22 +416,32 @@ function LocationRow({
                     >
                       {location.province.country.name}
                     </Box>
-                    {location._count.events > 0 && (
+                    {hasEvents && (
                       <Box
+                        component="button"
+                        onClick={handleNavigateClick}
                         sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          backgroundColor: ACCENT,
+                          border: 'none',
+                          px: '14px',
+                          py: '8px',
+                          borderRadius: '100px',
                           fontFamily: FONT_BODY,
-                          fontSize: '9px',
+                          fontSize: '10px',
                           fontWeight: 700,
-                          letterSpacing: '0.14em',
+                          letterSpacing: '0.12em',
                           textTransform: 'uppercase',
                           color: BG_DARK,
-                          backgroundColor: ACCENT,
-                          px: '8px',
-                          py: '4px',
-                          borderRadius: '2px',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          transition: 'opacity 0.2s',
+                          '&:hover': { opacity: 0.78 },
                         }}
                       >
-                        {location._count.events} evento{location._count.events !== 1 ? 's' : ''}
+                        Ver evento →
                       </Box>
                     )}
                   </Box>
@@ -394,6 +450,37 @@ function LocationRow({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Mobile: botón Ver evento debajo del contenido */}
+        {hasEvents && open && (
+          <Box sx={{ display: { xs: 'block', md: 'none' }, pb: '20px' }}>
+            <Box
+              component="button"
+              onClick={handleNavigateClick}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: ACCENT,
+                border: 'none',
+                px: '14px',
+                py: '8px',
+                borderRadius: '100px',
+                fontFamily: FONT_BODY,
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: BG_DARK,
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+                '&:hover': { opacity: 0.78 },
+              }}
+            >
+              Ver evento →
+            </Box>
+          </Box>
+        )}
 
         <Box sx={{ height: '1px', backgroundColor: LINE }} />
       </Box>
@@ -422,10 +509,11 @@ function EmptyState() {
 // ─── Export principal ─────────────────────────────────────────────────────────
 
 interface Props {
-  locations: PublicLocation[];
+  locations:              PublicLocation[];
+  futureEventLocationIds: number[];
 }
 
-export function LocationsLanding({ locations }: Props) {
+export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
   const groups = groupByProvince(locations);
 
   const mouseX = useMotionValue(-200);
@@ -433,10 +521,17 @@ export function LocationsLanding({ locations }: Props) {
   const springX = useSpring(mouseX, { stiffness: 380, damping: 38 });
   const springY = useSpring(mouseY, { stiffness: 380, damping: 38 });
   const [cursorVisible, setCursorVisible] = useState(false);
+  const [navigating, setNavigating] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     mouseX.set(e.clientX);
     mouseY.set(e.clientY);
+  };
+
+  const handleNavigation = () => {
+    setNavigating(true);
+    // Re-habilitar después de que el scroll suave termine (~1s)
+    setTimeout(() => setNavigating(false), 1200);
   };
 
   return (
@@ -450,6 +545,7 @@ export function LocationsLanding({ locations }: Props) {
         pt: { xs: '80px', md: '120px' },
         pb: { xs: '80px', md: '140px' },
         position: 'relative',
+        pointerEvents: navigating ? 'none' : undefined,
       }}
     >
       {/* Cursor custom — posición fija, controlado por spring */}
@@ -562,6 +658,8 @@ export function LocationsLanding({ locations }: Props) {
                   animDelay={Math.min(0.05 + lIdx * 0.07, 0.35)}
                   onCursorEnter={() => setCursorVisible(true)}
                   onCursorLeave={() => setCursorVisible(false)}
+                  onNavigate={handleNavigation}
+                  hasEvent={futureEventLocationIds.includes(location.id)}
                 />
               ))}
             </Box>

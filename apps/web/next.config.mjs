@@ -4,6 +4,14 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@mui/material', '@mui/icons-material'],
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
