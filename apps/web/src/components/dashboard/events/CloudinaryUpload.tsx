@@ -14,6 +14,7 @@ interface Props {
   onChange: (url: string | null) => void;
   label: string;
   disabled?: boolean;
+  folder?: 'events' | 'avatars';
 }
 
 type State =
@@ -32,7 +33,7 @@ interface SignatureData {
   folder: string;
 }
 
-export function CloudinaryUpload({ value, onChange, label, disabled }: Props) {
+export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'events' }: Props) {
   const [state, setState] = useState<State>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +53,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled }: Props) {
 
     let sig: SignatureData;
     try {
-      const res = await fetch('/api/upload/signature');
+      const res = await fetch(`/api/upload/signature?folder=${folder}`);
       if (!res.ok) throw new Error('Error al obtener firma');
       sig = (await res.json()) as SignatureData;
     } catch {
@@ -94,7 +95,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled }: Props) {
     };
 
     xhr.send(formData);
-  }, [onChange]);
+  }, [onChange, folder]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (files?.[0]) upload(files[0]);

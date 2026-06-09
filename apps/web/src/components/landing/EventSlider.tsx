@@ -3,16 +3,15 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
-import { EventCard } from './EventCard';
+import { EventCard, CARD_H } from './EventCard';
 import type { PublicEvent } from '@/lib/queries/public-events';
 
 function toSlugId(str: string): string {
   return str.toLowerCase().normalize('NFD').replace(/̀-ͯ/g, '').replace(/\s+/g, '-');
 }
 
-const FONT_DISPLAY   = 'var(--font-archivo-black), "Archivo Black", sans-serif';
-const FONT_BODY      = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
-const ACCENT         = '#84f649';
+const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
+const ACCENT       = '#84f649';
 const FG             = '#f5f5f0';
 const EASE           = [0.76, 0, 0.24, 1] as const;
 const CARD_GAP       = 10;
@@ -56,13 +55,15 @@ interface Props {
 
 export function EventSlider({ province, events, startIndex, animDelay = 0, activateLocationId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [dims, setDims] = useState(() => computeDims(events.length));
+  // null durante SSR → cliente inicializa con el mismo null → sin mismatch de Emotion.
+  // useEffect actualiza a las dimensiones reales del browser tras hidratación.
+  const [dims, setDims] = useState<{ expandedW: number; collapsedW: number } | null>(null);
 
   useEffect(() => {
-    setDims(computeDims(events.length));
-    const onResize = () => setDims(computeDims(events.length));
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const compute = () => setDims(computeDims(events.length));
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
   }, [events.length]);
 
   useEffect(() => {
@@ -105,7 +106,8 @@ export function EventSlider({ province, events, startIndex, animDelay = 0, activ
           </Box>
         </Box>
 
-        {/* Horizontal track */}
+        {/* Horizontal track — solo renderiza cards cuando dims está disponible (post-hidratación)
+            para evitar el mismatch de classNames de Emotion entre SSR y cliente */}
         <Box
           sx={{
             display:        'flex',
@@ -114,10 +116,11 @@ export function EventSlider({ province, events, startIndex, animDelay = 0, activ
             px:             { xs: '20px', md: '60px', xl: '80px' },
             pb:             '4px',
             scrollbarWidth: 'none',
+            minHeight:      dims ? 0 : `${CARD_H}px`, // evita layout shift durante hidratación
             '&::-webkit-scrollbar': { display: 'none' },
           }}
         >
-          {events.map((event, i) => (
+          {dims && events.map((event, i) => (
             <EventCard
               key={event.id}
               event={event}

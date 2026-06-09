@@ -127,6 +127,19 @@ model Event {
   updatedAt DateTime @updatedAt
 }
 
+// ── Testimonials ───────────────────────────────────────────────────────────────
+
+model Testimonial {
+  id        Int      @id @default(autoincrement())
+  firstName String
+  lastName  String
+  avatarUrl String?
+  content   String
+  eventName String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ── Pricing ────────────────────────────────────────────────────────────────────
 
 model EventPricing {

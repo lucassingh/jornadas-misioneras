@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getPublicEvents, getPublicEventById } from '@/lib/queries/public-events';
@@ -25,18 +26,14 @@ export default async function EventDetailPage({ params }: Props) {
     <div style={{ padding: '40px 24px', maxWidth: '900px', margin: '0 auto' }}>
       {/* Imágenes */}
       {event.imageUrl && (
-        <img
-          src={event.imageUrl}
-          alt={event.title}
-          style={{ width: '100%', borderRadius: '12px', marginBottom: '12px', display: 'block' }}
-        />
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '12px', overflow: 'hidden', marginBottom: '12px' }}>
+          <Image src={event.imageUrl} alt={event.title} fill style={{ objectFit: 'cover' }} />
+        </div>
       )}
       {event.imageUrl2 && (
-        <img
-          src={event.imageUrl2}
-          alt={`${event.title} — imagen 2`}
-          style={{ width: '100%', borderRadius: '12px', marginBottom: '24px', display: 'block' }}
-        />
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
+          <Image src={event.imageUrl2} alt={`${event.title} — imagen 2`} fill style={{ objectFit: 'cover' }} />
+        </div>
       )}
 
       <h1>{event.title}</h1>
