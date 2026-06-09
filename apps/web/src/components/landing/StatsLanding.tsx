@@ -78,7 +78,7 @@ export function StatsLanding() {
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
+            viewport={{ once: true, margin: '80px' }}
             transition={{ duration: 0.8, ease: EASE }}
             style={{ gridArea: 'intro', height: '100%' }}
           >
@@ -131,7 +131,7 @@ export function StatsLanding() {
             initial={{ opacity: 0, scale: 0.94, y: 36 }}
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             whileHover={HOVER_UP}
-            viewport={{ once: true, margin: '-60px' }}
+            viewport={{ once: true, margin: '80px' }}
             transition={{ duration: 0.8, delay: 0.08, ease: EASE }}
             style={{ gridArea: 'stat300', height: '100%' }}
           >
@@ -186,7 +186,7 @@ export function StatsLanding() {
             initial={{ opacity: 0, scale: 0.94, y: 36 }}
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             whileHover={HOVER_UP}
-            viewport={{ once: true, margin: '-60px' }}
+            viewport={{ once: true, margin: '80px' }}
             transition={{ duration: 0.8, delay: 0.16, ease: EASE }}
             style={{ gridArea: 'stat6', height: '100%' }}
           >
@@ -238,7 +238,7 @@ export function StatsLanding() {
             initial={{ opacity: 0, scale: 0.94, y: 36 }}
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             whileHover={HOVER_UP}
-            viewport={{ once: true, margin: '-60px' }}
+            viewport={{ once: true, margin: '80px' }}
             transition={{ duration: 0.8, delay: 0.24, ease: EASE }}
             style={{ gridArea: 'stat4', height: '100%' }}
           >

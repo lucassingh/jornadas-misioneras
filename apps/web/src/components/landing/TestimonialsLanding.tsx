@@ -104,7 +104,7 @@ function TestimonialCard({ t }: { t: PublicTestimonial }) {
         WebkitBoxOrient: 'vertical',
         flex: 1,
       }}>
-        "{t.content}"
+        &ldquo;{t.content}&rdquo;
       </Box>
     </Box>
   );

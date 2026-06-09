@@ -10,9 +10,8 @@ function toSlugId(str: string): string {
   return str.toLowerCase().normalize('NFD').replace(/̀-ͯ/g, '').replace(/\s+/g, '-');
 }
 
-const FONT_DISPLAY   = 'var(--font-archivo-black), "Archivo Black", sans-serif';
-const FONT_BODY      = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
-const ACCENT         = '#84f649';
+const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
+const ACCENT       = '#84f649';
 const FG             = '#f5f5f0';
 const EASE           = [0.76, 0, 0.24, 1] as const;
 const CARD_GAP       = 10;

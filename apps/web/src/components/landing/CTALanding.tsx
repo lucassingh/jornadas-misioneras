@@ -22,7 +22,7 @@ const LINE = {
 };
 const FADE = {
   hidden:  { y: 28, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { duration: 0.75, ease: 'easeOut' } },
+  visible: { y: 0, opacity: 1, transition: { duration: 0.75, ease: 'easeOut' as const } },
 };
 
 const BR = [
@@ -30,12 +30,12 @@ const BR = [
   ['62% 38% 44% 56%/56% 44% 56% 44%', '38% 62% 56% 44%/44% 56% 44% 56%', '50% 50% 62% 38%/62% 38% 50% 50%', '62% 38% 44% 56%/56% 44% 56% 44%'],
   ['50% 50% 30% 70%/50% 30% 70% 50%', '30% 70% 70% 30%/70% 50% 30% 70%', '70% 30% 50% 50%/30% 70% 50% 50%', '50% 50% 30% 70%/50% 30% 70% 50%'],
   ['72% 28% 52% 48%/32% 62% 38% 68%', '28% 72% 48% 52%/62% 32% 68% 38%', '52% 48% 28% 72%/48% 52% 62% 38%', '72% 28% 52% 48%/32% 62% 38% 68%'],
-] as const;
+];
 
 export function CTALanding() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const inView     = useInView(contentRef, { once: true, margin: '-80px' });
+  const inView     = useInView(contentRef, { once: true, margin: '80px' });
 
   const rawX = useMotionValue(0);
   const rawY = useMotionValue(0);
@@ -178,62 +178,54 @@ export function CTALanding() {
       </Box>
 
       {/* ── Contenido principal ── */}
-      <Box
+      <motion.div
         ref={contentRef}
-        component={motion.div}
         initial="hidden"
         animate={inView ? 'visible' : 'hidden'}
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.12, delayChildren: 0.06 } } }}
-        sx={{ position: 'relative', zIndex: 4, maxWidth: '1020px', width: '100%' }}
+        style={{ position: 'relative', zIndex: 4, maxWidth: '1020px', width: '100%' }}
       >
-        <Box
-          component={motion.div}
+        <motion.div
           variants={{ hidden: { scaleX: 0 }, visible: { scaleX: 1, transition: { duration: 0.65, ease: EASE } } }}
-          sx={{ width: '68px', height: '4px', backgroundColor: ACCENT, borderRadius: '2px', mb: '32px', transformOrigin: '0% 50%' }}
+          style={{ width: '68px', height: '4px', backgroundColor: ACCENT, borderRadius: '2px', marginBottom: '32px', transformOrigin: '0% 50%' }}
         />
 
         <Box sx={{ overflow: 'hidden' }}>
-          <Box
-            component={motion.div}
-            variants={LINE}
-            sx={{
+          <motion.div variants={LINE}>
+            <Box sx={{
               fontFamily: FONT_DISPLAY,
               fontSize: { xs: '13vw', sm: '10vw', md: '8.5vw', lg: '7.5vw', xl: '7vw' },
               fontWeight: 400, letterSpacing: '-0.032em', lineHeight: 1.04, color: FG_DARK,
-            }}
-          >
-            Sumate a
-          </Box>
+            }}>
+              Sumate a
+            </Box>
+          </motion.div>
         </Box>
 
         <Box sx={{ overflow: 'hidden', mb: { xs: '24px', md: '40px' } }}>
-          <Box
-            component={motion.div}
-            variants={LINE}
-            sx={{
+          <motion.div variants={LINE}>
+            <Box sx={{
               fontFamily: FONT_DISPLAY,
               fontSize: { xs: '13vw', sm: '10vw', md: '8.5vw', lg: '7.5vw', xl: '7vw' },
               fontWeight: 400, letterSpacing: '-0.032em', lineHeight: 1.04, color: PRIMARY,
-            }}
-          >
-            la misión.
-          </Box>
+            }}>
+              la misión.
+            </Box>
+          </motion.div>
         </Box>
 
-        <Box
-          component={motion.div}
-          variants={FADE}
-          sx={{
+        <motion.div variants={FADE}>
+          <Box sx={{
             fontFamily: FONT_BODY, fontSize: { xs: '15px', md: '18px' },
             color: `${FG_DARK}6a`, lineHeight: 1.68, maxWidth: '480px',
             mb: { xs: '44px', md: '60px' },
-          }}
-        >
-          Miles de jóvenes ya lo vivieron. Encontrá el evento más cercano
-          y dale un nuevo sentido a tu tiempo.
-        </Box>
+          }}>
+            Miles de jóvenes ya lo vivieron. Encontrá el evento más cercano
+            y dale un nuevo sentido a tu tiempo.
+          </Box>
+        </motion.div>
 
-        <Box component={motion.div} variants={FADE}>
+        <motion.div variants={FADE}>
           <Box
             component="a"
             href="#eventos"
@@ -259,8 +251,8 @@ export function CTALanding() {
             </Box>
             <Box className="arrow-icon"><ArrowRight size={28} strokeWidth={2.2} /></Box>
           </Box>
-        </Box>
-      </Box>
+        </motion.div>
+      </motion.div>
     </Box>
   );
 }

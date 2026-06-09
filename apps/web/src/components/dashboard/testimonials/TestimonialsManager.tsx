@@ -237,7 +237,7 @@ export function TestimonialsManager({ testimonials, page, totalPages, total, pag
                             fontStyle: 'italic',
                           }}
                         >
-                          "{t.content}"
+                          &ldquo;{t.content}&rdquo;
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
@@ -400,7 +400,7 @@ export function TestimonialsManager({ testimonials, page, totalPages, total, pag
                   variant="body2"
                   sx={{ whiteSpace: 'pre-wrap', fontStyle: 'italic', mt: 0.5 }}
                 >
-                  "{viewItem.content}"
+                  &ldquo;{viewItem.content}&rdquo;
                 </Typography>
               </Box>
             </Box>
