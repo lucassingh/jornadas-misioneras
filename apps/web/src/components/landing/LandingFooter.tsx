@@ -16,42 +16,61 @@ const FONT_BODY = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 const PX = { xs: '20px', md: '60px', xl: '80px' };
 
 const NAV_LINKS = [
-  { label: 'Inicio', href: '/' },
-  { label: 'Nosotros', href: '/#nosotros' },
-  { label: 'Sedes', href: '/#sedes' },
-  { label: 'Contacto', href: '/#contacto' },
+  { label: 'Inicio',   sectionId: ''         },
+  { label: 'Nosotros', sectionId: 'nosotros'  },
+  { label: 'Sedes',    sectionId: 'sedes'     },
+  { label: 'Eventos',  sectionId: 'eventos'   },
 ];
+
+function getNavH(): number {
+  return window.innerWidth >= 900 ? 72 : 64;
+}
+
+function scrollToSection(id: string) {
+  window.dispatchEvent(new CustomEvent('jm:nav-start'));
+  window.scrollTo({ top: window.scrollY, left: window.scrollX });
+  requestAnimationFrame(() => {
+    if (!id) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - getNavH();
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  });
+}
+
+const SPLIT_SX = {
+  display: 'block',
+  position: 'relative' as const,
+  overflow: 'hidden',
+  fontFamily: FONT_BODY,
+  fontSize: '14px',
+  fontWeight: 400,
+  letterSpacing: '0.02em',
+  lineHeight: 1.4,
+  textDecoration: 'none',
+  cursor: 'pointer',
+  '&:hover .fh-front': { transform: 'translateY(-105%)' },
+  '&:hover .fh-back': { transform: 'translateY(-105%)' },
+};
 
 function SplitHoverLink({
   label,
   href,
   color = FG,
   external = false,
+  onNav,
 }: {
   label: string;
-  href: string;
+  href?: string;
   color?: string;
   external?: boolean;
+  onNav?: () => void;
 }) {
-  return (
-    <Box
-      component={external ? 'a' : Link}
-      href={href}
-      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      sx={{
-        display: 'block',
-        position: 'relative',
-        overflow: 'hidden',
-        fontFamily: FONT_BODY,
-        fontSize: '14px',
-        fontWeight: 400,
-        letterSpacing: '0.02em',
-        lineHeight: 1.4,
-        textDecoration: 'none',
-        '&:hover .fh-front': { transform: 'translateY(-105%)' },
-        '&:hover .fh-back': { transform: 'translateY(-105%)' },
-      }}
-    >
+  const spans = (
+    <>
       <Box
         component="span"
         className="fh-front"
@@ -74,6 +93,32 @@ function SplitHoverLink({
       >
         {label}
       </Box>
+    </>
+  );
+
+  if (onNav) {
+    return (
+      <Box
+        component="div"
+        role="button"
+        tabIndex={0}
+        onClick={onNav}
+        onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && onNav()}
+        sx={SPLIT_SX}
+      >
+        {spans}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      component={external ? 'a' : Link}
+      href={href}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      sx={SPLIT_SX}
+    >
+      {spans}
     </Box>
   );
 }
@@ -85,7 +130,11 @@ export function LandingFooter() {
   const logoRef = useRef<HTMLDivElement>(null);
   const logoInView = useInView(logoRef, { once: true, amount: 0.2 });
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const scrollToTop = () => {
+    window.dispatchEvent(new CustomEvent('jm:nav-start'));
+    window.scrollTo({ top: window.scrollY, left: window.scrollX });
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  };
 
   return (
     <Box
@@ -169,13 +218,16 @@ export function LandingFooter() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
             {NAV_LINKS.map((link, i) => (
               <motion.div
-                key={link.href}
+                key={link.label}
                 initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: 0.04 + i * 0.05, ease: EASE }}
               >
-                <SplitHoverLink label={link.label} href={link.href} />
+                <SplitHoverLink
+                  label={link.label}
+                  onNav={() => scrollToSection(link.sectionId)}
+                />
               </motion.div>
             ))}
             <motion.div

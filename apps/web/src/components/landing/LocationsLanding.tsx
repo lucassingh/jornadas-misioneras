@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import Box from '@mui/material/Box';
 import type { PublicLocation } from '@/lib/queries/public-locations';
@@ -528,11 +528,24 @@ export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
     mouseY.set(e.clientY);
   };
 
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleNavigation = () => {
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
     setNavigating(true);
-    // Re-habilitar después de que el scroll suave termine (~1s)
-    setTimeout(() => setNavigating(false), 1200);
+    navTimerRef.current = setTimeout(() => setNavigating(false), 1500);
   };
+
+  // Disable hover interactions whenever any nav-link scroll fires
+  useEffect(() => {
+    const handler = () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+      setNavigating(true);
+      navTimerRef.current = setTimeout(() => setNavigating(false), 1500);
+    };
+    window.addEventListener('jm:nav-start', handler);
+    return () => window.removeEventListener('jm:nav-start', handler);
+  }, []);
 
   return (
     <Box
@@ -546,6 +559,7 @@ export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
         pb: { xs: '80px', md: '140px' },
         position: 'relative',
         pointerEvents: navigating ? 'none' : undefined,
+        scrollMarginTop: { xs: '64px', md: '72px' },
       }}
     >
       {/* Cursor custom — posición fija, controlado por spring */}

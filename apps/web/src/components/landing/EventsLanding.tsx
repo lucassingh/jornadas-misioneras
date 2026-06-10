@@ -68,7 +68,7 @@ export function EventsLanding({ events }: Props) {
     <Box
       id="eventos"
       component="section"
-      sx={{ backgroundColor: BG, position: 'relative' }}
+      sx={{ backgroundColor: BG, position: 'relative', scrollMarginTop: { xs: '64px', md: '72px' } }}
     >
       {/* ── Gradient header zone: #f5f5f0 → primary ── */}
       <Box
