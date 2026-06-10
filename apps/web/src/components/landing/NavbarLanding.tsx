@@ -7,17 +7,39 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const LINKS = [
-  { label: 'Inicio', href: '/' },
-  { label: 'Nosotros', href: '/#nosotros' },
-  { label: 'Sedes', href: '/#sedes' },
-  { label: 'Contacto', href: '/#contacto' },
+  { label: 'Inicio',   sectionId: ''         },
+  { label: 'Nosotros', sectionId: 'nosotros'  },
+  { label: 'Sedes',    sectionId: 'sedes'     },
+  { label: 'Eventos',  sectionId: 'eventos'   },
 ];
 
+function getNavH(): number {
+  return window.innerWidth >= 900 ? 72 : 64;
+}
+
+function scrollToSection(id: string) {
+  // Tell sections to disable hover/pointer interactions while we scroll
+  window.dispatchEvent(new CustomEvent('jm:nav-start'));
+  // Cancel any in-progress smooth scroll at current position
+  window.scrollTo({ top: window.scrollY, left: window.scrollX });
+
+  requestAnimationFrame(() => {
+    if (!id) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - getNavH();
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  });
+}
+
+const PRIMARY = '#2235fd';
 const ACCENT = '#84f649';
-const FG = '#f5f5f0';       // texto sobre fondo oscuro
 const BG = '#0d0c0c';
-const MENU_BG = '#f5f5f0';  // fondo del menú abierto
-const MENU_FG = '#0d0c0c';  // texto sobre fondo blanco
+const MENU_BG = '#f5f5f0';
+const MENU_FG = '#0d0c0c';
 const EASE = [0.76, 0, 0.24, 1] as const;
 const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_BODY = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
@@ -37,9 +59,16 @@ export function NavbarLanding() {
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  // Color de los elementos del header según estado
-  const headerColor = open ? MENU_FG : FG;
   const headerBg = open ? MENU_BG : scrolled ? BG : 'rgba(0,0,0,0)';
+
+  const burgerCircleBg = open ? BG : '#f5f5f0';
+  const burgerLineColor = open ? ACCENT : PRIMARY;
+
+  // Wait for full menu close animation (650ms) before scrolling
+  const handleMenuLink = (sectionId: string) => {
+    setOpen(false);
+    setTimeout(() => scrollToSection(sectionId), 700);
+  };
 
   return (
     <>
@@ -59,16 +88,13 @@ export function NavbarLanding() {
       >
         <Box
           sx={{
-            maxWidth: 1400,
-            mx: 'auto',
-            px: { xs: '20px', md: '40px', xl: '60px' },
+            px: { xs: '20px', md: '60px', xl: '80px' },
             height: { xs: '64px', md: '72px' },
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
+            display: 'flex',
             alignItems: 'center',
           }}
         >
-          {/* LEFT — Logo: oculto cuando el menú está abierto */}
+          {/* Logo — natural left edge matching section padding */}
           <Box
             component={Link}
             href="/"
@@ -76,7 +102,6 @@ export function NavbarLanding() {
               display: 'flex',
               alignItems: 'center',
               lineHeight: 0,
-              justifySelf: 'start',
               opacity: open ? 0 : 1,
               pointerEvents: open ? 'none' : 'auto',
               transition: 'opacity 0.25s',
@@ -92,85 +117,48 @@ export function NavbarLanding() {
             />
           </Box>
 
-          {/* CENTER — MENU toggle */}
+          {/* Hamburger — ml: auto pushes to right edge matching section padding */}
           <Box
             component="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              background: 'none',
+              ml: 'auto',
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: burgerCircleBg,
               border: 'none',
               cursor: 'pointer',
-              p: '8px 16px',
-              color: headerColor,
-              fontFamily: FONT_BODY,
-              fontSize: '11px',
-              fontWeight: 600,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              userSelect: 'none',
-              transition: 'color 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'background 0.3s',
+              p: 0,
             }}
           >
-            <span>MENU</span>
-            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '5px', width: '20px', height: '14px' }}>
+            {/*
+             * Container: 20×16px, space-between → lines at y=1, y=8, y=15 (centers).
+             * For X: line1 moves Δy=+7 and line3 moves Δy=-7 → both land at y=8 (center).
+             * This ensures the two diagonals cross at the exact same point.
+             */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: '20px', height: '16px' }}>
               <motion.span
-                animate={{ rotate: open ? 45 : 0, y: open ? 7 : 0, backgroundColor: headerColor }}
+                animate={{ rotate: open ? 45 : 0, y: open ? 7 : 0, backgroundColor: burgerLineColor }}
                 transition={{ duration: 0.35, ease: EASE }}
-                style={{ display: 'block', height: 1.5, transformOrigin: 'center' }}
+                style={{ display: 'block', height: 2, transformOrigin: 'center' }}
               />
               <motion.span
-                animate={{ opacity: open ? 0 : 1, backgroundColor: headerColor }}
+                animate={{ opacity: open ? 0 : 1, backgroundColor: burgerLineColor }}
                 transition={{ duration: 0.2 }}
-                style={{ display: 'block', height: 1.5 }}
+                style={{ display: 'block', height: 2 }}
               />
               <motion.span
-                animate={{ rotate: open ? -45 : 0, y: open ? -7 : 0, backgroundColor: headerColor }}
+                animate={{ rotate: open ? -45 : 0, y: open ? -7 : 0, backgroundColor: burgerLineColor }}
                 transition={{ duration: 0.35, ease: EASE }}
-                style={{ display: 'block', height: 1.5, transformOrigin: 'center' }}
+                style={{ display: 'block', height: 2, transformOrigin: 'center' }}
               />
-            </Box>
-          </Box>
-
-          {/* RIGHT — utility: oculto cuando el menú está abierto */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifySelf: 'end', gap: { xs: '16px', md: '28px' }, opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto', transition: 'opacity 0.25s' }}>
-            <Box
-              component={Link}
-              href="/#nosotros"
-              sx={{
-                display: { xs: 'none', md: 'block' },
-                color: headerColor,
-                fontFamily: FONT_BODY,
-                fontSize: '12px',
-                fontWeight: 400,
-                letterSpacing: '0.04em',
-                textDecoration: 'none',
-                opacity: 0.55,
-                transition: 'opacity 0.2s, color 0.3s',
-                '&:hover': { opacity: 1 },
-              }}
-            >
-              Nosotros
-            </Box>
-            <Box
-              component={Link}
-              href="/eventos"
-              sx={{
-                color: open ? BG : ACCENT,
-                fontFamily: FONT_BODY,
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                textDecoration: 'none',
-                transition: 'color 0.3s, opacity 0.2s',
-                '&:hover': { opacity: 0.7 },
-              }}
-            >
-              Inscribite →
             </Box>
           </Box>
         </Box>
@@ -195,49 +183,6 @@ export function NavbarLanding() {
               overflow: 'hidden',
             }}
           >
-            {/* BRAND NAME — una sola línea, más chico */}
-            <Box
-              sx={{
-                pt: { xs: '84px', md: '100px' },
-                px: { xs: '20px', md: '40px', xl: '60px' },
-                overflow: 'hidden',
-                lineHeight: 0,
-              }}
-            >
-              <motion.div
-                initial={{ y: '105%' }}
-                animate={{ y: '0%' }}
-                exit={{ y: '105%' }}
-                transition={{ duration: 0.75, delay: 0.08, ease: EASE }}
-              >
-                <Box
-                  sx={{
-                    fontFamily: FONT_DISPLAY,
-                    fontSize: { xs: '7vw', sm: '6vw', md: '5.2vw', lg: '4.5vw' },
-                    fontWeight: 400,
-                    letterSpacing: { xs: '-0.01em', md: '-0.02em' },
-                    textTransform: 'uppercase',
-                    color: MENU_FG,
-                    lineHeight: 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Jornadas Misioneras
-                </Box>
-              </motion.div>
-            </Box>
-
-            {/* DIVIDER */}
-            <Box sx={{ px: { xs: '20px', md: '40px', xl: '60px' }, mt: { xs: '20px', md: '28px' } }}>
-              <motion.div
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                exit={{ scaleX: 0 }}
-                transition={{ duration: 0.6, delay: 0.22, ease: EASE }}
-                style={{ height: 1, backgroundColor: 'rgba(13,12,12,0.14)', transformOrigin: 'left' }}
-              />
-            </Box>
-
             {/* NAV LINKS — split-text hover */}
             <Box
               sx={{
@@ -248,28 +193,26 @@ export function NavbarLanding() {
                 alignItems: 'center',
                 gap: { xs: '0px', md: '2px' },
                 py: { xs: '20px', md: '28px' },
+                pt: { xs: '84px', md: '100px' },
               }}
             >
               {LINKS.map((link, i) => (
-                <Box key={link.href} sx={{ overflow: 'hidden' }}>
+                <Box key={link.sectionId} sx={{ overflow: 'hidden' }}>
                   <motion.div
                     initial={{ y: '100%' }}
                     animate={{ y: '0%' }}
                     exit={{ y: '100%' }}
                     transition={{ duration: 0.65, delay: 0.18 + i * 0.08, ease: EASE }}
                   >
-                    {/*
-                     * Split-text hover:
-                     * .text-front: visible por defecto, sube y desaparece al hover
-                     * .text-back: arranca en top:100% (abajo, oculto), sube y aparece al hover
-                     * overflow:hidden en el Link las recorta
-                     */}
                     <Box
-                      component={Link}
-                      href={link.href}
-                      onClick={() => setOpen(false)}
+                      component="div"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleMenuLink(link.sectionId)}
+                      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleMenuLink(link.sectionId)}
                       sx={{
                         display: 'block',
+                        cursor: 'pointer',
                         position: 'relative',
                         overflow: 'hidden',
                         fontFamily: FONT_DISPLAY,
@@ -278,7 +221,7 @@ export function NavbarLanding() {
                         letterSpacing: '-0.01em',
                         textTransform: 'uppercase',
                         lineHeight: 1.12,
-                        textDecoration: 'none',
+                        userSelect: 'none',
                         '&:hover .text-front': { transform: 'translateY(-105%)' },
                         '&:hover .text-back':  { transform: 'translateY(-105%)' },
                       }}
@@ -288,7 +231,7 @@ export function NavbarLanding() {
                         className="text-front"
                         sx={{
                           display: 'block',
-                          color: '#2235fd',
+                          color: PRIMARY,
                           transition: 'transform 0.52s cubic-bezier(0.76, 0, 0.24, 1)',
                         }}
                       >
@@ -318,8 +261,7 @@ export function NavbarLanding() {
             {/* BOTTOM — contacto izq, CTA der */}
             <Box
               sx={{
-                borderTop: '1px solid rgba(13,12,12,0.1)',
-                px: { xs: '20px', md: '40px', xl: '60px' },
+                px: { xs: '20px', md: '60px', xl: '80px' },
                 py: { xs: '20px', md: '28px' },
                 display: 'flex',
                 alignItems: 'center',
@@ -382,9 +324,8 @@ export function NavbarLanding() {
                   transition={{ duration: 0.5, delay: 0.55, ease: EASE }}
                 >
                   <Box
-                    component={Link}
-                    href="/eventos"
-                    onClick={() => setOpen(false)}
+                    component="button"
+                    onClick={() => handleMenuLink('eventos')}
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -398,7 +339,8 @@ export function NavbarLanding() {
                       fontWeight: 700,
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
-                      textDecoration: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
                       transition: 'background-color 0.25s, gap 0.25s',
                       '&:hover': { backgroundColor: '#a3ff6e', gap: '16px' },
                     }}

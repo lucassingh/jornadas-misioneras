@@ -3,7 +3,6 @@
 import { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
-import Link from 'next/link';
 
 const ACCENT = '#84f649';
 const FG = '#f5f5f0';
@@ -101,9 +100,7 @@ export function HeroLanding() {
           position: 'relative',
           zIndex: 2,
           width: '100%',
-          maxWidth: 1400,
-          mx: 'auto',
-          px: { xs: '20px', md: '40px', xl: '60px' },
+          px: { xs: '20px', md: '60px', xl: '80px' },
           pb: { xs: '56px', md: '72px', xl: '88px' },
         }}
       >
@@ -189,8 +186,17 @@ export function HeroLanding() {
             </Box>
 
             <Box
-              component={Link}
-              href="/eventos"
+              component="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('jm:nav-start'));
+                window.scrollTo({ top: window.scrollY, left: window.scrollX });
+                requestAnimationFrame(() => {
+                  const el = document.getElementById('eventos');
+                  if (!el) return;
+                  const navH = window.innerWidth >= 900 ? 72 : 64;
+                  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - navH, behavior: 'smooth' });
+                });
+              }}
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -204,7 +210,8 @@ export function HeroLanding() {
                 fontWeight: 700,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                textDecoration: 'none',
+                border: 'none',
+                cursor: 'pointer',
                 flexShrink: 0,
                 transition: 'background-color 0.25s, gap 0.25s',
                 '&:hover': { backgroundColor: '#a3ff6e', gap: '16px' },
@@ -222,7 +229,7 @@ export function HeroLanding() {
         sx={{
           position: 'absolute',
           bottom: { xs: '24px', md: '32px' },
-          right: { xs: '20px', md: '40px', xl: '60px' },
+          right: { xs: '20px', md: '60px', xl: '80px' },
           zIndex: 2,
           display: 'flex',
           flexDirection: 'column',

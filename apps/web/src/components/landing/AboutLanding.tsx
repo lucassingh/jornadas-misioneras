@@ -114,12 +114,20 @@ export function AboutLanding() {
     return () => { tween.kill(); };
   }, []);
 
+  // Refresh ScrollTrigger when a nav-link scroll is about to fire so the
+  // pin spacer height is accurate before getBoundingClientRect is called.
+  useEffect(() => {
+    const handler = () => ScrollTrigger.refresh();
+    window.addEventListener('jm:nav-start', handler);
+    return () => window.removeEventListener('jm:nav-start', handler);
+  }, []);
+
   return (
     <Box
       ref={sectionRef}
       id="nosotros"
       component="section"
-      sx={{ position: 'relative', backgroundColor: BG, overflow: 'hidden' }}
+      sx={{ position: 'relative', backgroundColor: BG, overflow: 'hidden', scrollMarginTop: { xs: '64px', md: '72px' } }}
     >
 
       {/* ── INTRO BLOCK ── */}
