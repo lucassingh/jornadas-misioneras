@@ -15,6 +15,18 @@ interface Props {
   params: { id: string };
 }
 
+function RichSection({ label, html }: { label: string; html: string }) {
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <strong>{label}:</strong>
+      <div
+        dangerouslySetInnerHTML={{ __html: html }}
+        style={{ lineHeight: '1.7', marginTop: '4px' }}
+      />
+    </div>
+  );
+}
+
 export default async function EventDetailPage({ params }: Props) {
   const event = await getPublicEventById(Number(params.id));
   if (!event) notFound();
@@ -43,11 +55,11 @@ export default async function EventDetailPage({ params }: Props) {
       <p><strong>Provincia:</strong> {event.province.name}</p>
       <p><strong>Localidad:</strong> {event.location.name}</p>
 
-      {event.description    && <p><strong>Descripción:</strong> {event.description}</p>}
-      {event.hostChurch     && <p><strong>Iglesia anfitriona:</strong> {event.hostChurch}</p>}
-      {event.activities     && <p><strong>Actividades:</strong> {event.activities}</p>}
-      {event.targetAudience && <p><strong>Dirigido a:</strong> {event.targetAudience}</p>}
-      {event.extraInfo      && <p><strong>Info adicional:</strong> {event.extraInfo}</p>}
+      {event.description    && <RichSection label="Descripción" html={event.description} />}
+      {event.hostChurch     && <RichSection label="Iglesia anfitriona" html={event.hostChurch} />}
+      {event.activities     && <RichSection label="Actividades" html={event.activities} />}
+      {event.targetAudience && <RichSection label="Dirigido a" html={event.targetAudience} />}
+      {event.extraInfo      && <RichSection label="Info adicional" html={event.extraInfo} />}
       {event.capacity       && <p><strong>Capacidad:</strong> {event.capacity} personas</p>}
 
       {event.pricing && (

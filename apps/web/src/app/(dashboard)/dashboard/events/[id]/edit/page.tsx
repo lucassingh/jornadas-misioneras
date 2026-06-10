@@ -15,9 +15,10 @@ export const metadata: Metadata = { title: 'Editar Evento' };
 
 interface Props {
   params: { id: string };
+  searchParams: { from?: string };
 }
 
-export default async function EditEventPage({ params }: Props) {
+export default async function EditEventPage({ params, searchParams }: Props) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
@@ -59,6 +60,7 @@ export default async function EditEventPage({ params }: Props) {
           countries={countries}
           provinces={provinces}
           locations={locations}
+          fromClone={searchParams.from === 'clone'}
         />
       </Box>
     </>

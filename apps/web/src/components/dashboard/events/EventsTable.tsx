@@ -14,7 +14,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import { Pencil, Trash2, Eye, Calendar } from 'lucide-react';
+import { Pencil, Trash2, Eye, Calendar, CopyPlus } from 'lucide-react';
 import { ConfirmDialog, COLOR_TOKENS } from '@jornadas/ui';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -50,6 +50,11 @@ const ACTION_STYLES = {
     color: '#f44336',
     '&:hover': { bgcolor: 'rgba(244,67,54,0.22)' },
   },
+  clone: {
+    bgcolor: 'rgba(99,102,241,0.10)',
+    color: '#6366f1',
+    '&:hover': { bgcolor: 'rgba(99,102,241,0.22)' },
+  },
 } as const;
 
 interface Props {
@@ -67,9 +72,29 @@ export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, 
   const [isPending, startTransition] = useTransition();
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cloningId, setCloningId] = useState<number | null>(null);
   const [viewEventId, setViewEventId] = useState<number | null>(null);
 
   const canEdit = (e: EventRow) => isAdmin || e.createdBy === currentUserId;
+
+  const handleClone = async (id: number) => {
+    setCloningId(id);
+    const toastId = toast.loading('Duplicando evento...');
+    try {
+      const res = await fetch(`/api/events/${id}/clone`, { method: 'POST' });
+      if (res.ok) {
+        const { data } = await res.json();
+        toast.success('Evento duplicado. Podés editarlo ahora.', { id: toastId });
+        router.push(`/dashboard/events/${data.id}/edit?from=clone`);
+      } else {
+        toast.error('Error al duplicar el evento', { id: toastId });
+      }
+    } catch {
+      toast.error('Error de conexión', { id: toastId });
+    } finally {
+      setCloningId(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -127,7 +152,7 @@ export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, 
                   { type: 'text', width: 100 },
                   { type: 'text', width: 80 },
                   { type: 'text', width: 80 },
-                  { type: 'actions', align: 'right', actionCount: 3 },
+                  { type: 'actions', align: 'right', actionCount: 4 },
                 ]}
               />
             ) : (
@@ -162,6 +187,16 @@ export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, 
                       </Tooltip>
                       {canEdit(event) && (
                         <>
+                          <Tooltip title="Duplicar evento">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleClone(event.id)}
+                              disabled={cloningId === event.id}
+                              sx={{ borderRadius: 1.5, ...ACTION_STYLES.clone }}
+                            >
+                              <CopyPlus size={15} />
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Editar">
                             <IconButton component={Link} href={`/dashboard/events/${event.id}/edit`} size="small" sx={{ borderRadius: 1.5, ...ACTION_STYLES.edit }}>
                               <Pencil size={15} />
