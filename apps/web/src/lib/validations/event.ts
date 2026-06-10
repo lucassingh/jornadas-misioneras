@@ -68,11 +68,11 @@ const baseEventSchema = z.object({
   countryId: z.coerce.number().int().positive('Seleccioná un país'),
   provinceId: z.coerce.number().int().positive('Seleccioná una provincia'),
   locationId: z.coerce.number().int().positive('Seleccioná una localidad'),
-  description: z.string().max(10000).optional().nullable(),
-  hostChurch: z.string().max(10000).optional().nullable(),
-  activities: z.string().max(10000).optional().nullable(),
-  extraInfo: z.string().max(10000).optional().nullable(),
-  targetAudience: z.string().max(10000).optional().nullable(),
+  description: z.string().max(50000).optional().nullable(),
+  hostChurch: z.string().max(50000).optional().nullable(),
+  activities: z.string().max(50000).optional().nullable(),
+  extraInfo: z.string().max(50000).optional().nullable(),
+  targetAudience: z.string().max(50000).optional().nullable(),
   capacity: z.coerce.number().int().positive('La capacidad debe ser mayor a 0').optional().nullable(),
   registrationLink: z.string().optional().nullable(),
   // Contact
@@ -88,7 +88,7 @@ const baseEventSchema = z.object({
 
 export const createEventSchema = baseEventSchema
   .refine((d) => new Date(d.endDate) >= new Date(d.startDate), {
-    message: 'La fecha de fin debe ser posterior o igual a la de inicio',
+    message: 'La fecha de inicio no puede ser mayor a la de fin',
     path: ['endDate'],
   })
   .superRefine((d, ctx) => {

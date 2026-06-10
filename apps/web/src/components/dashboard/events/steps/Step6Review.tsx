@@ -57,6 +57,40 @@ function Row({ label, value }: { label: string; value?: string | number | null }
   );
 }
 
+const EMPTY_HTML = '<p></p>';
+const isRichEmpty = (v?: string | null) => !v || v === EMPTY_HTML;
+
+function RichRow({ label, value }: { label: string; value?: string | null }) {
+  if (isRichEmpty(value)) return null;
+  return (
+    <Box mb={1.5}>
+      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>{label}</Typography>
+      <Box
+        dangerouslySetInnerHTML={{ __html: value! }}
+        sx={{
+          fontSize: '0.8125rem',
+          lineHeight: 1.6,
+          '& h1': { fontSize: '1.1rem',   fontWeight: 700, marginTop: '12px', marginBottom: '5px' },
+          '& h2': { fontSize: '1rem',     fontWeight: 700, marginTop: '10px', marginBottom: '4px' },
+          '& h3': { fontSize: '0.95rem',  fontWeight: 600, marginTop: '8px',  marginBottom: '4px' },
+          '& h4': { fontSize: '0.875rem', fontWeight: 600, marginTop: '6px',  marginBottom: '4px' },
+          '& h5': { fontSize: '0.8rem',   fontWeight: 600, marginTop: '6px',  marginBottom: '4px' },
+          '& h6': { fontSize: '0.75rem',  fontWeight: 600, marginTop: '6px',  marginBottom: '4px' },
+          '& p': { margin: '0 0 0.6em 0' },
+          '& p:last-child': { marginBottom: 0 },
+          '& ul, & ol': { paddingLeft: '1.4em', margin: '0 0 0.6em 0' },
+          '& li': { margin: '0.15em 0' },
+          '& li > p': { margin: 0 },
+          '& blockquote': { borderLeft: '3px solid', borderColor: 'divider', paddingLeft: '0.8em', margin: '0.6em 0', fontStyle: 'italic', color: 'text.secondary' },
+          '& hr': { border: 'none', borderTop: '1px solid', borderColor: 'divider', margin: '0.75em 0' },
+          '& a': { color: 'primary.main', textDecoration: 'underline' },
+          '& strong': { fontWeight: 700 },
+        }}
+      />
+    </Box>
+  );
+}
+
 export function Step6Review({ form, countries, provinces, locations, onGoToStep }: Props) {
   const values = form.watch();
 
@@ -142,16 +176,16 @@ export function Step6Review({ form, countries, provinces, locations, onGoToStep 
       {/* Sobre el evento — step 3 */}
       <Box sx={cardSx}>
         <SectionHeader label="Sobre el evento" step={3} onEdit={onGoToStep} />
-        {!values.description && !values.hostChurch && !values.activities &&
-         !values.extraInfo && !values.targetAudience && !values.capacity && !values.registrationLink ? (
+        {isRichEmpty(values.description) && isRichEmpty(values.hostChurch) && isRichEmpty(values.activities) &&
+         isRichEmpty(values.extraInfo) && isRichEmpty(values.targetAudience) && !values.capacity && !values.registrationLink ? (
           <Typography variant="body2" color="text.secondary" fontStyle="italic">Sin información adicional</Typography>
         ) : (
           <>
-            <Row label="Descripción" value={values.description} />
-            <Row label="Iglesia anfitriona" value={values.hostChurch} />
-            <Row label="Actividades" value={values.activities} />
-            <Row label="Información extra" value={values.extraInfo} />
-            <Row label="¿Quiénes pueden asistir?" value={values.targetAudience} />
+            <RichRow label="Descripción" value={values.description} />
+            <RichRow label="Iglesia anfitriona" value={values.hostChurch} />
+            <RichRow label="Actividades" value={values.activities} />
+            <RichRow label="Información extra" value={values.extraInfo} />
+            <RichRow label="¿Quiénes pueden asistir?" value={values.targetAudience} />
             <Row label="Cupos disponibles" value={values.capacity} />
             <Row label="Link de inscripción" value={values.registrationLink} />
           </>
