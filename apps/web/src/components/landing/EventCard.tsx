@@ -82,7 +82,7 @@ export function EventCard({ event, index, isActive, expandedW, collapsedW, onAct
 
   const handleClick = useCallback(() => {
     if (isActive) {
-      router.push(`/eventos/${event.id}`);
+      router.push(`/events/${event.id}`);
     } else {
       onActivate();
     }

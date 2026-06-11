@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, canModifyEvent } from '@/lib/permissions';
 import { updateEventSchema, mapPricingToDb } from '@/lib/validations/event';
@@ -70,6 +71,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
   });
 
+  revalidatePath('/events');
+  revalidatePath(`/events/${eventId}`);
+
   return NextResponse.json({ data: updated });
 }
 
@@ -83,5 +87,9 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!canModifyEvent(event.createdBy, user.clerkId, user.role)) return forbidden();
 
   await prisma.event.delete({ where: { id: eventId } });
+
+  revalidatePath('/events');
+  revalidatePath(`/events/${eventId}`);
+
   return NextResponse.json({ data: { message: 'Evento eliminado' } });
 }

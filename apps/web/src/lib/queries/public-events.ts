@@ -10,8 +10,18 @@ const EVENT_SELECT = {
   endDate: true,
   pricing: {
     select: {
+      paymentSystem: true,
+      registrationEarlyDeadline: true,
       registrationEarlyAmount: true,
+      registrationLateDeadline: true,
       registrationLateAmount: true,
+      eventPaymentDeadline: true,
+      eventPaymentEarlyAmount: true,
+      eventPaymentAtEventAmount: true,
+      installment1Deadline: true,
+      installment1Amount: true,
+      installment2Amount: true,
+      totalAmount: true,
     },
   },
   country:  { select: { id: true, name: true } },
@@ -28,6 +38,7 @@ export async function getPublicEvents() {
 }
 
 export type PublicEvent = Awaited<ReturnType<typeof getPublicEvents>>[number];
+export type PublicEventById = NonNullable<Awaited<ReturnType<typeof getPublicEventById>>>;
 
 export async function getPublicEventById(id: number) {
   return prisma.event.findUnique({
