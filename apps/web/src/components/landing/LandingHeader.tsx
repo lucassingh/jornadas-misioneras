@@ -15,7 +15,7 @@ import { useColorMode } from '@/context/ColorModeContext';
 
 const navLinks = [
   { label: 'Inicio', href: '/' },
-  { label: 'Eventos', href: '/eventos' },
+  { label: 'Eventos', href: '/events' },
 ];
 
 export function LandingHeader() {

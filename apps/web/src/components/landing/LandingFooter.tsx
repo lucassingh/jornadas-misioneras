@@ -236,7 +236,7 @@ export function LandingFooter() {
               viewport={{ once: true }}
               transition={{ duration: 0.45, delay: 0.24, ease: EASE }}
             >
-              <SplitHoverLink label="Inscribite →" href="/eventos" color={ACCENT} />
+              <SplitHoverLink label="Inscribite →" href="/events" color={ACCENT} />
             </motion.div>
           </Box>
         </Box>
