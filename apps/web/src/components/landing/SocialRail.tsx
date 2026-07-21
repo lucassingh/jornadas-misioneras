@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Box from '@mui/material/Box';
 
@@ -49,6 +50,9 @@ const ITEMS = [
 ] as const;
 
 export function SocialRail() {
+  const pathname = usePathname();
+  const isDetail = /^\/events\/\d+$/.test(pathname);
+
   const [ready,   setReady]   = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -97,10 +101,13 @@ export function SocialRail() {
     <Box
       sx={{
         display:   { xs: 'none', md: 'flex' },
-        // Align right edge of circles with the section horizontal padding,
-        // matching the hamburger button and scroll indicator positions
         position:  'fixed',
-        right:     { md: '60px', xl: '80px' },
+        // Detail page → left side (floats over the sticky image slider)
+        // Landing pages → right side aligned with horizontal padding
+        ...(isDetail
+          ? { left: { md: '60px', xl: '80px' }, right: 'auto' }
+          : { right: { md: '60px', xl: '80px' }, left: 'auto' }
+        ),
         top:       '50%',
         transform: 'translateY(-50%)',
         zIndex:    990,
@@ -110,9 +117,9 @@ export function SocialRail() {
         {show && (
           <motion.div
             key="social-rail"
-            initial={{ opacity: 0, x: 14 }}
+            initial={{ opacity: 0, x: isDetail ? -14 : 14 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 14 }}
+            exit={{ opacity: 0, x: isDetail ? -14 : 14 }}
             transition={{ duration: 0.38, ease: EASE }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           >
@@ -131,16 +138,20 @@ export function SocialRail() {
                 onMouseEnter={() => setHoverId(id)}
                 onMouseLeave={() => setHoverId(null)}
               >
-                {/* slide-out label — appears to the left of the circle */}
+                {/* slide-out label — left of circle on right-side rail, right of circle on left-side rail */}
                 <AnimatePresence>
                   {hoverId === id && (
                     <motion.div
                       key="tip"
-                      initial={{ opacity: 0, x: 6, width: 0 }}
+                      initial={{ opacity: 0, x: isDetail ? -6 : 6, width: 0 }}
                       animate={{ opacity: 1, x: 0, width: 'auto' }}
-                      exit={{ opacity: 0, x: 6, width: 0 }}
+                      exit={{ opacity: 0, x: isDetail ? -6 : 6, width: 0 }}
                       transition={{ duration: 0.22, ease: EASE }}
-                      style={{ position: 'absolute', right: '46px', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                      style={{
+                        position: 'absolute',
+                        ...(isDetail ? { left: '46px' } : { right: '46px' }),
+                        overflow: 'hidden', whiteSpace: 'nowrap',
+                      }}
                     >
                       <Box
                         sx={{

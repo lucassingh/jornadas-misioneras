@@ -18,18 +18,24 @@ function getNavH(): number {
 }
 
 function scrollToSection(id: string) {
-  // Tell sections to disable hover/pointer interactions while we scroll
   window.dispatchEvent(new CustomEvent('jm:nav-start'));
-  // Cancel any in-progress smooth scroll at current position
   window.scrollTo({ top: window.scrollY, left: window.scrollX });
 
   requestAnimationFrame(() => {
     if (!id) {
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+        return;
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {
+      // Not on the home page — navigate there with the hash anchor
+      window.location.href = `/#${id}`;
+      return;
+    }
     const top = el.getBoundingClientRect().top + window.scrollY - getNavH();
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   });
