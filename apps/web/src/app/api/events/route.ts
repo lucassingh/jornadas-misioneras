@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, isAdmin } from '@/lib/permissions';
 import { createEventSchema, mapPricingToDb } from '@/lib/validations/event';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 const EVENT_INCLUDE = {
   country: true,
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       include: EVENT_INCLUDE,
     });
 
+    revalidatePublicPages();
     return NextResponse.json({ data: event }, { status: 201 });
   } catch (err) {
     console.error('[POST /api/events] Error de Prisma:', err);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, isAdmin } from '@/lib/permissions';
 import { createLocationSchema } from '@/lib/validations/location';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
@@ -42,5 +43,6 @@ export async function POST(req: NextRequest) {
     data: parsed.data,
     include: { province: { include: { country: true } } },
   });
+  revalidatePublicPages();
   return NextResponse.json({ data: location }, { status: 201 });
 }

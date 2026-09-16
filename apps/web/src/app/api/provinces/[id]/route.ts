@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, isAdmin } from '@/lib/permissions';
 import { updateProvinceSchema } from '@/lib/validations/province';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 interface Params {
   params: { id: string };
@@ -48,6 +49,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     include: { country: true },
   });
 
+  revalidatePublicPages();
   return NextResponse.json({ data: province });
 }
 
@@ -74,5 +76,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   await prisma.province.delete({ where: { id } });
+  revalidatePublicPages();
   return NextResponse.json({ data: { message: 'Provincia eliminada' } });
 }

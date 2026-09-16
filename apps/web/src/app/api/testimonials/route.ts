@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, isAdmin } from '@/lib/permissions';
 import { createTestimonialSchema } from '@/lib/validations/testimonial';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
@@ -34,5 +35,6 @@ export async function POST(req: NextRequest) {
   const testimonial = await prisma.testimonial.create({
     data: { ...rest, avatarUrl: avatarUrl || null },
   });
+  revalidatePublicPages();
   return NextResponse.json({ data: testimonial }, { status: 201 });
 }

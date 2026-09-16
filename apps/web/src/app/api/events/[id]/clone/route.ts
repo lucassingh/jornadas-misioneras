@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, canModifyEvent } from '@/lib/permissions';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 interface Params {
   params: { id: string };
@@ -58,5 +59,6 @@ export async function POST(_req: NextRequest, { params }: Params) {
     include: { country: true, province: true, location: true, pricing: true },
   });
 
+  revalidatePublicPages();
   return NextResponse.json({ data: cloned }, { status: 201 });
 }

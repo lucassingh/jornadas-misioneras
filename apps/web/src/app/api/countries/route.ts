@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, isAdmin } from '@/lib/permissions';
 import { createCountrySchema } from '@/lib/validations/country';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
@@ -30,5 +31,6 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const country = await prisma.country.create({ data: parsed.data });
+  revalidatePublicPages();
   return NextResponse.json({ data: country }, { status: 201 });
 }

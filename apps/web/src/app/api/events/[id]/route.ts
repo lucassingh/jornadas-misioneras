@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, canModifyEvent } from '@/lib/permissions';
 import { updateEventSchema, mapPricingToDb } from '@/lib/validations/event';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 interface Params {
   params: { id: string };
@@ -71,7 +72,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
   });
 
-  revalidatePath('/events');
+  revalidatePublicPages();
   revalidatePath(`/events/${eventId}`);
 
   return NextResponse.json({ data: updated });
@@ -88,7 +89,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   await prisma.event.delete({ where: { id: eventId } });
 
-  revalidatePath('/events');
+  revalidatePublicPages();
   revalidatePath(`/events/${eventId}`);
 
   return NextResponse.json({ data: { message: 'Evento eliminado' } });

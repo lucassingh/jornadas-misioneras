@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, isAdmin } from '@/lib/permissions';
 import { updateLocationSchema } from '@/lib/validations/location';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 interface Params {
   params: { id: string };
@@ -26,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     include: { province: { include: { country: true } } },
   });
 
+  revalidatePublicPages();
   return NextResponse.json({ data: location });
 }
 
@@ -49,5 +51,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   await prisma.location.delete({ where: { id } });
+  revalidatePublicPages();
   return NextResponse.json({ data: { message: 'Localidad eliminada' } });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, isAdmin } from '@/lib/permissions';
 import { updateCountrySchema } from '@/lib/validations/country';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 interface Params {
   params: { id: string };
@@ -42,6 +43,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const country = await prisma.country.update({ where: { id }, data: parsed.data });
+  revalidatePublicPages();
   return NextResponse.json({ data: country });
 }
 
@@ -68,5 +70,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   await prisma.country.delete({ where: { id } });
+  revalidatePublicPages();
   return NextResponse.json({ data: { message: 'País eliminado' } });
 }

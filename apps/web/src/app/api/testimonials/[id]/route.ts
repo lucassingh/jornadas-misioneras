@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@jornadas/database';
 import { getAuthUser, unauthorized, forbidden, notFound, isAdmin } from '@/lib/permissions';
 import { updateTestimonialSchema } from '@/lib/validations/testimonial';
+import { revalidatePublicPages } from '@/lib/revalidatePublicPages';
 
 interface Params {
   params: { id: string };
@@ -25,6 +26,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (avatarUrl !== undefined) data.avatarUrl = avatarUrl || null;
 
   const testimonial = await prisma.testimonial.update({ where: { id }, data });
+  revalidatePublicPages();
   return NextResponse.json({ data: testimonial });
 }
 
@@ -38,5 +40,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!exists) return notFound('Testimonio');
 
   await prisma.testimonial.delete({ where: { id } });
+  revalidatePublicPages();
   return NextResponse.json({ data: { message: 'Testimonio eliminado' } });
 }
