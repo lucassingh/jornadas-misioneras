@@ -22,7 +22,7 @@ export function Step1BasicInfo({ form }: Props) {
   const { register, control, formState: { errors } } = form;
 
   return (
-    <Box sx={sectionSx}>
+    <Box data-tour="eventForm.step0.panel" sx={sectionSx}>
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <TextField

@@ -35,7 +35,7 @@ export function Step2Dates({ form }: Props) {
   })();
 
   return (
-    <Box sx={sectionSx}>
+    <Box data-tour="eventForm.step1.panel" sx={sectionSx}>
       <Grid container spacing={2.5} alignItems="flex-start">
         <Grid item xs={12} sm={5}>
           <TextField

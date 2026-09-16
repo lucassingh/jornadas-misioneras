@@ -17,6 +17,7 @@ const robotoFlex = Roboto_Flex({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.jornadasmisioneras.org'),
   title: { default: 'Jornadas Misioneras', template: '%s | Jornadas Misioneras' },
   description: 'Plataforma de gestión de eventos misioneros',
 };

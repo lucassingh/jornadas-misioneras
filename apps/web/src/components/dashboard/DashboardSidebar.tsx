@@ -14,8 +14,8 @@ import {
   Globe,
   Building2,
   MapPin,
+  MessageSquareQuote,
   ChevronLeft,
-  ChevronRight,
   LogOut,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -37,6 +37,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
   { label: 'Eventos', href: '/dashboard/events', icon: <Calendar size={20} /> },
+  { label: 'Testimonios', href: '/dashboard/testimonials', icon: <MessageSquareQuote size={20} />, adminOnly: true },
   { label: 'Países', href: '/dashboard/countries', icon: <Globe size={20} />, adminOnly: true },
   { label: 'Provincias', href: '/dashboard/provinces', icon: <Building2 size={20} />, adminOnly: true },
   { label: 'Localidades', href: '/dashboard/locations', icon: <MapPin size={20} />, adminOnly: true },
@@ -55,8 +56,16 @@ interface Props {
 export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
   const pathname = usePathname();
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const sidebarBg = theme.palette.sidebar.bg;
   const sidebarBorder = theme.palette.sidebar.border;
+
+  const iconMuted = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(36,30,33,0.45)';
+  const iconHover = isDark ? '#fff' : theme.palette.text.primary;
+  const hoverBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(34,53,253,0.06)';
+  const activeBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(34,53,253,0.08)';
+  const inactiveText = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(36,30,33,0.6)';
+  const activeColor = isDark ? COLOR_TOKENS.extra2 : COLOR_TOKENS.brand;
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
@@ -89,39 +98,64 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
           borderBottom: `1px solid ${sidebarBorder}`,
         }}
       >
-        {isOpen && (
+        {isOpen ? (
+          <>
+            <Box
+              component={Link}
+              href="/"
+              sx={{ position: 'relative', width: 140, height: 40, flexShrink: 0 }}
+            >
+              <Image
+                src={isDark ? '/logos/logo_JM_bg_dark_op1.svg' : '/logos/logo_JM_bg_light_op2.svg'}
+                alt="Jornadas Misioneras"
+                fill
+                style={{ objectFit: 'contain', objectPosition: 'left' }}
+                priority
+              />
+            </Box>
+            <Box
+              onClick={onToggle}
+              sx={{
+                width: 30,
+                height: 30,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                color: iconMuted,
+                flexShrink: 0,
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: hoverBg, color: iconHover },
+              }}
+            >
+              <ChevronLeft size={16} />
+            </Box>
+          </>
+        ) : (
+          // Colapsado: el isotipo (sin texto) hace de botón para reabrir el aside
           <Box
-            component={Link}
-            href="/"
-            sx={{ position: 'relative', width: 140, height: 40, flexShrink: 0 }}
+            onClick={onToggle}
+            role="button"
+            aria-label="Expandir menú"
+            sx={{
+              position: 'relative',
+              width: 32,
+              height: 32,
+              flexShrink: 0,
+              cursor: 'pointer',
+              transition: 'transform 0.2s ease',
+              '&:hover': { transform: 'scale(1.08)' },
+            }}
           >
             <Image
-              src="/logos/logo_JM_bg_dark_op1.svg"
+              src="/logos/logo_JM_bg_dark_op2.svg"
               alt="Jornadas Misioneras"
               fill
-              style={{ objectFit: 'contain', objectPosition: 'left' }}
-              priority
+              style={{ objectFit: 'contain' }}
             />
           </Box>
         )}
-        <Box
-          onClick={onToggle}
-          sx={{
-            width: 30,
-            height: 30,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            color: 'rgba(255,255,255,0.4)',
-            flexShrink: 0,
-            transition: 'all 0.2s ease',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', color: '#fff' },
-          }}
-        >
-          {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-        </Box>
       </Box>
 
       {/* Nav items */}
@@ -138,6 +172,7 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
                 <ListItemButton
                   component={Link}
                   href={item.href}
+                  data-tour={`shell.aside.item.${item.href}`}
                   sx={{
                     borderRadius: 2,
                     minHeight: 42,
@@ -146,9 +181,9 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
                     gap: 1.5,
                     position: 'relative',
                     overflow: 'hidden',
-                    bgcolor: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: isActive ? COLOR_TOKENS.extra2 : 'rgba(255,255,255,0.5)',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', color: '#fff' },
+                    bgcolor: isActive ? activeBg : 'transparent',
+                    color: isActive ? activeColor : inactiveText,
+                    '&:hover': { bgcolor: hoverBg, color: iconHover },
                     // línea izquierda SOLO cuando está abierto
                     ...(isActive && isOpen && {
                       '&::before': {
@@ -158,7 +193,7 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
                         top: '15%',
                         height: '70%',
                         width: 3,
-                        bgcolor: COLOR_TOKENS.extra2,
+                        bgcolor: activeColor,
                         borderRadius: '0 4px 4px 0',
                       },
                     }),
@@ -192,7 +227,7 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
             variant="outlined"
             startIcon={<LogOut size={16} />}
             sx={{
-              color: '#fff',
+              color: isDark ? '#fff' : theme.palette.text.primary,
               borderColor: COLOR_TOKENS.brand,
               width: isOpen ? '100%' : 'auto',
               minWidth: 0,

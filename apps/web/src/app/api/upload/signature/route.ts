@@ -1,8 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createHash } from 'crypto';
 
-export async function GET() {
+// Allowlist, no el valor crudo del query param: así un ?folder= arbitrario
+// no puede firmar una subida hacia una carpeta de Cloudinary fuera de esta app.
+const ALLOWED_FOLDERS = {
+  events: 'jornadas-misioneras/events',
+  avatars: 'jornadas-misioneras/avatars',
+} as const;
+
+export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
@@ -14,8 +21,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Cloudinary no configurado' }, { status: 503 });
   }
 
+  const requested = req.nextUrl.searchParams.get('folder');
+  const folder = ALLOWED_FOLDERS[requested as keyof typeof ALLOWED_FOLDERS] ?? ALLOWED_FOLDERS.events;
+
   const timestamp = Math.round(Date.now() / 1000);
-  const folder = 'jornadas-misioneras/events';
 
   // Cloudinary signature: SHA1 of sorted params + api_secret
   const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;

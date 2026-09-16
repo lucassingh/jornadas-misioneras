@@ -46,6 +46,7 @@ export default async function EventsPage({
       <Jumbotron
         title="Eventos"
         subtitle={isAdmin ? 'Todos los eventos de la plataforma' : 'Tus eventos creados'}
+        dataTour="eventsList.jumbotron"
         action={
           <Button component={Link} href="/dashboard/events/new" variant="contained" color="secondary" startIcon={<Plus size={16} />}>
             Nuevo Evento

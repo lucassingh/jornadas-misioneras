@@ -24,7 +24,10 @@ function MuiThemeProvider({ children }: { children: React.ReactNode }) {
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     window.history.scrollRestoration = 'manual';
-    window.scrollTo(0, 0);
+    // No pisar el scroll nativo cuando la carga trae un hash (ej: /#eventos)
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
   }, []);
 
   const [queryClient] = useState(

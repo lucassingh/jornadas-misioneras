@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import AlertTitle from '@mui/material/AlertTitle';
 import { type StepIconProps } from '@mui/material/StepIcon';
 import { Check } from 'lucide-react';
 import { COLOR_TOKENS } from '@jornadas/ui';
+import { useTourActions } from '@/components/tour-onboarding';
 import { createEventSchema, type CreateEventInput } from '@/lib/validations/event';
 import { Step1BasicInfo } from './steps/Step1BasicInfo';
 import { Step2Dates } from './steps/Step2Dates';
@@ -379,6 +380,22 @@ export function EventForm({ event, countries, provinces, locations, fromClone }:
   // True once the user has entered the Review step (pre-validates all fields)
   const [reviewValidated, setReviewValidated] = useState(false);
   const isEditing = !!event;
+
+  // El tour de este formulario mueve el stepper directo a un paso puntual
+  // (ver `definitions/eventFormTour.ts` — cada paso del tour tiene su propio
+  // `onEnter: 'goToStepN'`) porque solo el paso activo existe en el DOM.
+  // `TourGuideMenu` vive en el header, compartido por todo el dashboard, así
+  // que no puede recibir esto por prop: se publica acá.
+  const tourActions = useMemo(() => ({
+    goToStep0: () => setActiveStep(0),
+    goToStep1: () => setActiveStep(1),
+    goToStep2: () => setActiveStep(2),
+    goToStep3: () => setActiveStep(3),
+    goToStep4: () => setActiveStep(4),
+    goToStep5: () => setActiveStep(5),
+    goToStep6: () => setActiveStep(6),
+  }), []);
+  useTourActions('eventForm', tourActions);
 
   const form = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema),

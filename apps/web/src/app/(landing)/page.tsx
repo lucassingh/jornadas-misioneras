@@ -1,4 +1,5 @@
 import { HeroLanding } from '@/components/landing/HeroLanding';
+import { VideoLanding } from '@/components/landing/VideoLanding';
 import { AboutLanding } from '@/components/landing/AboutLanding';
 import { LocationsLanding } from '@/components/landing/LocationsLanding';
 import { EventsLanding } from '@/components/landing/EventsLanding';
@@ -21,6 +22,7 @@ export default async function HomePage() {
   return (
     <>
       <HeroLanding />
+      <VideoLanding />
       <AboutLanding />
       <LocationsLanding
         locations={locations}

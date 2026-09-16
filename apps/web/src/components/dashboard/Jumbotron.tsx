@@ -6,11 +6,14 @@ interface JumbotronProps {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
+  /** Pasado a `data-tour` en el Box raíz — para poder resaltarlo desde un tour. */
+  dataTour?: string;
 }
 
-export function Jumbotron({ title, subtitle, action }: JumbotronProps) {
+export function Jumbotron({ title, subtitle, action, dataTour }: JumbotronProps) {
   return (
     <Box
+      data-tour={dataTour}
       sx={{
         width: '100%',
         px: 4,
@@ -62,7 +65,7 @@ export function Jumbotron({ title, subtitle, action }: JumbotronProps) {
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', mt: 0.25, display: 'block' }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', mt: 0.25, display: 'block' }}>
             {subtitle}
           </Typography>
         )}

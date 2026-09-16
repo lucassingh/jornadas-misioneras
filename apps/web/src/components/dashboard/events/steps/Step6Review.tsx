@@ -110,7 +110,7 @@ export function Step6Review({ form, countries, provinces, locations, onGoToStep 
   const pricing = values.pricing;
 
   return (
-    <Box>
+    <Box data-tour="eventForm.step6.panel">
       <Box sx={{ p: 2, borderRadius: 2, bgcolor: `${COLOR_TOKENS.extra2}18`, mb: 3 }}>
         <Typography variant="body2" color="text.secondary">
           Revisá toda la información antes de crear el evento. Podés volver a cualquier sección.

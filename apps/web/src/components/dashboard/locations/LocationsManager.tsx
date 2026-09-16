@@ -156,6 +156,7 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
       <Jumbotron
         title="Localidades"
         subtitle="Gestión de localidades organizadas por provincia"
+        dataTour="locations.jumbotron"
         action={
           <Button variant="contained" color="secondary" startIcon={<Plus size={16} />} onClick={openCreate}>
             Nueva Localidad
@@ -163,7 +164,7 @@ export function LocationsManager({ locations, provinces, page, totalPages, total
         }
       />
       <Box sx={{ px: 3, pb: 3 }}>
-        <TableContainer>
+        <TableContainer data-tour="locations.table">
           <Table>
             <TableHead>
               <TableRow>

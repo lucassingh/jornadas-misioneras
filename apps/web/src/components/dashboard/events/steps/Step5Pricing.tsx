@@ -185,7 +185,7 @@ export function Step5Pricing({ form }: Props) {
         const total = hasPricing ? calcTotal(pricing) : null;
 
         return (
-          <Box sx={cardSx}>
+          <Box data-tour="eventForm.step5.panel" sx={cardSx}>
             {pricingErrorMessages.length > 0 && (
               <Alert severity="error" sx={{ mb: 3 }}>
                 {pricingErrorMessages.map((m, i) => <div key={i}>{m}</div>)}

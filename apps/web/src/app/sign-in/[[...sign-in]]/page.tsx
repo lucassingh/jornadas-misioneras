@@ -1,33 +1,27 @@
 import { SignIn } from '@clerk/nextjs';
-import Box from '@mui/material/Box';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
 
 export default function SignInPage() {
   return (
-    <Box
-      minHeight="100vh"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      bgcolor="background.default"
-    >
+    <AuthSplitLayout>
       <SignIn
         appearance={{
           variables: {
             colorPrimary: '#2235fd',
-            colorBackground: '#2e2829',
-            colorText: '#ffffff',
-            colorTextSecondary: 'rgba(255,255,255,0.55)',
-            colorInputBackground: '#241e21',
-            colorInputText: '#ffffff',
+            colorBackground: '#ffffff',
+            colorText: '#241e21',
+            colorTextSecondary: 'rgba(36,30,33,0.55)',
+            colorInputBackground: '#f4f6f8',
+            colorInputText: '#241e21',
             borderRadius: '10px',
             fontFamily: 'var(--font-roboto-flex), Roboto, sans-serif',
           },
           elements: {
-            card: { boxShadow: 'none', border: '1px solid rgba(255,255,255,0.08)' },
+            card: { boxShadow: 'none', border: '1px solid rgba(34,53,253,0.1)' },
             headerTitle: { fontFamily: 'var(--font-archivo-black)' },
           },
         }}
       />
-    </Box>
+    </AuthSplitLayout>
   );
 }

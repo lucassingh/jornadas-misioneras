@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Box from '@mui/material/Box';
 import { motion, useInView } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { scrollToSection } from '@/lib/scrollToSection';
 
 const BG           = '#f5f5f0';
 const FG_DARK      = '#0d0c0c';
@@ -228,7 +229,12 @@ export function CTALanding() {
           <motion.div variants={FADE}>
             <Box
               component="a"
-              href="#eventos"
+              href="/#eventos"
+              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                e.preventDefault();
+                scrollToSection('eventos');
+              }}
               sx={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 width: '100%', maxWidth: { xs: '100%', md: '480px' },

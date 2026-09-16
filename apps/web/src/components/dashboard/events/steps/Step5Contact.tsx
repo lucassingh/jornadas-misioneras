@@ -23,7 +23,7 @@ export function Step5Contact({ form }: Props) {
   const { register, formState: { errors } } = form;
 
   return (
-    <Box sx={sectionSx}>
+    <Box data-tour="eventForm.step4.panel" sx={sectionSx}>
       <Typography variant="body2" color="text.secondary" mb={3}>
         Datos del organizador para que los asistentes puedan comunicarse.
       </Typography>

@@ -36,8 +36,8 @@ export const getTheme = (mode: PaletteMode) =>
       extra1: { main: COLOR_TOKENS.extra1, contrastText: COLOR_TOKENS.white },
       extra2: { main: COLOR_TOKENS.extra2, contrastText: COLOR_TOKENS.darkBg },
       sidebar: {
-        bg: COLOR_TOKENS.sidebarDark,
-        border: 'rgba(255,255,255,0.07)',
+        bg: mode === 'dark' ? COLOR_TOKENS.sidebarDark : COLOR_TOKENS.white,
+        border: mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(34,53,253,0.1)',
       },
       card: {
         bg: mode === 'dark' ? COLOR_TOKENS.cardDark : COLOR_TOKENS.white,

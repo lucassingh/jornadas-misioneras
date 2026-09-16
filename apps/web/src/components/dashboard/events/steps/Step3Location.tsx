@@ -77,7 +77,7 @@ export function Step3Location({ form, countries, provinces, locations }: Props) 
   );
 
   return (
-    <Box sx={sectionSx}>
+    <Box data-tour="eventForm.step2.panel" sx={sectionSx}>
       <Grid container spacing={2.5}>
         {/* País */}
         <Grid item xs={12} sm={isArgentina ? 3 : 6}>

@@ -130,7 +130,7 @@ export function EventsTable({ events, currentUserId, isAdmin, page, totalPages, 
 
   return (
     <>
-      <TableContainer>
+      <TableContainer data-tour="eventsList.table">
         <Table>
           <TableHead>
             <TableRow>

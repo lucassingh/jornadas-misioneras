@@ -21,6 +21,23 @@ const CARD_W   = '380px';
 const CARD_H   = '210px';
 const CARD_MX  = '10px';
 
+function EmptyState() {
+  return (
+    <Box
+      sx={{
+        px:         { xs: '20px', md: '60px', xl: '80px' },
+        py:         '60px',
+        fontFamily: FONT_DISPLAY,
+        fontSize:   { xs: '22px', md: '28px' },
+        color:      'rgba(13,12,12,0.28)',
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Todavía no hay testimonios para mostrar.
+    </Box>
+  );
+}
+
 interface Props { testimonials: PublicTestimonial[]; }
 
 function TestimonialCard({ t }: { t: PublicTestimonial }) {
@@ -145,8 +162,6 @@ export function TestimonialsLanding({ testimonials }: Props) {
     };
   }, [testimonials.length]);
 
-  if (testimonials.length === 0) return null;
-
   return (
     <Box
       id="testimonios"
@@ -203,42 +218,48 @@ export function TestimonialsLanding({ testimonials }: Props) {
       </Box>
 
       {/* Marquee rows — 3 copies each for seamless loop on any screen width */}
-      <Box sx={{
-        flex: 1,
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        py: { xs: '28px', md: '40px' },
-        gap: { xs: '16px', md: '20px' },
-      }}>
-        {/* Row 1 — right to left */}
-        <Box
-          sx={{ overflow: 'hidden' }}
-          onMouseEnter={() => tween1Ref.current?.pause()}
-          onMouseLeave={() => tween1Ref.current?.resume()}
-        >
-          <Box ref={track1Ref} sx={{ display: 'flex', width: 'max-content', willChange: 'transform' }}>
-            {[0, 1, 2].map((copy) =>
-              testimonials.map((t, i) => (
-                <TestimonialCard key={`r1-${copy}-${i}`} t={t} />
-              ))
-            )}
-          </Box>
+      {testimonials.length === 0 ? (
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+          <EmptyState />
         </Box>
+      ) : (
+        <Box sx={{
+          flex: 1,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          py: { xs: '28px', md: '40px' },
+          gap: { xs: '16px', md: '20px' },
+        }}>
+          {/* Row 1 — right to left */}
+          <Box
+            sx={{ overflow: 'hidden' }}
+            onMouseEnter={() => tween1Ref.current?.pause()}
+            onMouseLeave={() => tween1Ref.current?.resume()}
+          >
+            <Box ref={track1Ref} sx={{ display: 'flex', width: 'max-content', willChange: 'transform' }}>
+              {[0, 1, 2].map((copy) =>
+                testimonials.map((t, i) => (
+                  <TestimonialCard key={`r1-${copy}-${i}`} t={t} />
+                ))
+              )}
+            </Box>
+          </Box>
 
-        {/* Row 2 — left to right */}
-        <Box
-          sx={{ overflow: 'hidden' }}
-          onMouseEnter={() => tween2Ref.current?.pause()}
-          onMouseLeave={() => tween2Ref.current?.resume()}
-        >
-          <Box ref={track2Ref} sx={{ display: 'flex', width: 'max-content', willChange: 'transform' }}>
-            {[0, 1, 2].map((copy) =>
-              testimonials.map((t, i) => (
-                <TestimonialCard key={`r2-${copy}-${i}`} t={t} />
-              ))
-            )}
+          {/* Row 2 — left to right */}
+          <Box
+            sx={{ overflow: 'hidden' }}
+            onMouseEnter={() => tween2Ref.current?.pause()}
+            onMouseLeave={() => tween2Ref.current?.resume()}
+          >
+            <Box ref={track2Ref} sx={{ display: 'flex', width: 'max-content', willChange: 'transform' }}>
+              {[0, 1, 2].map((copy) =>
+                testimonials.map((t, i) => (
+                  <TestimonialCard key={`r2-${copy}-${i}`} t={t} />
+                ))
+              )}
+            </Box>
           </Box>
         </Box>
-      </Box>
+      )}
 
       {/* Bottom fade: verde → cream */}
       <Box sx={{

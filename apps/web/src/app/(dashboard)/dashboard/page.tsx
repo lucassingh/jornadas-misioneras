@@ -82,17 +82,19 @@ export default async function DashboardPage() {
       value: totalEvents,
       icon: <Calendar size={22} />,
       accent: COLOR_TOKENS.extra2,
+      tourTarget: 'dashboard.kpi.events',
     },
     {
       label: 'Este mes',
       value: eventsThisMonth,
       icon: <CalendarCheck size={22} />,
       accent: COLOR_TOKENS.secondary,
+      tourTarget: 'dashboard.kpi.month',
     },
     ...(isAdmin
       ? [
-          { label: 'Países', value: totalCountries, icon: <Globe size={22} />, accent: COLOR_TOKENS.extra2 },
-          { label: 'Localidades', value: totalLocations, icon: <MapPin size={22} />, accent: COLOR_TOKENS.extra1 },
+          { label: 'Países', value: totalCountries, icon: <Globe size={22} />, accent: COLOR_TOKENS.extra2, tourTarget: 'dashboard.kpi.countries' },
+          { label: 'Localidades', value: totalLocations, icon: <MapPin size={22} />, accent: COLOR_TOKENS.extra1, tourTarget: 'dashboard.kpi.locations' },
         ]
       : []),
   ];
@@ -109,7 +111,7 @@ export default async function DashboardPage() {
         <Grid container spacing={2.5} sx={{ mb: 3 }}>
           {statCards.map((card) => (
             <Grid item xs={6} sm={3} key={card.label}>
-              <Card>
+              <Card data-tour={card.tourTarget}>
                 <CardContent sx={{ p: 2.5 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                     <Box>
@@ -143,7 +145,7 @@ export default async function DashboardPage() {
         <Grid container spacing={2.5}>
           {/* Próximos eventos */}
           <Grid item xs={12} md={isAdmin ? 7 : 12}>
-            <Card sx={{ height: '100%' }}>
+            <Card data-tour="dashboard.panels.upcoming" sx={{ height: '100%' }}>
               <CardContent sx={{ p: 3 }}>
                 <Box display="flex" alignItems="center" gap={1} mb={2.5}>
                   <Clock size={18} color={COLOR_TOKENS.extra2} />
@@ -231,7 +233,7 @@ export default async function DashboardPage() {
           {/* Distribución por país (solo admin) */}
           {isAdmin && (
             <Grid item xs={12} md={5}>
-              <Card sx={{ height: '100%' }}>
+              <Card data-tour="dashboard.panels.byCountry" sx={{ height: '100%' }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box display="flex" alignItems="center" gap={1} mb={2.5}>
                     <TrendingUp size={18} color={COLOR_TOKENS.extra2} />

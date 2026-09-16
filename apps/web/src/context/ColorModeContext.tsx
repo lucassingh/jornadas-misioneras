@@ -9,7 +9,7 @@ interface ColorModeContextType {
 }
 
 const ColorModeContext = createContext<ColorModeContextType>({
-  mode: 'dark',
+  mode: 'light',
   toggleColorMode: () => {},
 });
 
@@ -40,11 +40,11 @@ function applyCssVars(mode: PaletteMode) {
 }
 
 export function ColorModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<PaletteMode>('dark');
+  const [mode, setMode] = useState<PaletteMode>('light');
 
   useEffect(() => {
     const stored = localStorage.getItem('colorMode') as PaletteMode | null;
-    const initial = stored === 'light' || stored === 'dark' ? stored : 'dark';
+    const initial = stored === 'light' || stored === 'dark' ? stored : 'light';
     setMode(initial);
     applyCssVars(initial);
   }, []);

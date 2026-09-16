@@ -158,6 +158,7 @@ export function TestimonialsManager({ testimonials, page, totalPages, total, pag
       <Jumbotron
         title="Testimonios"
         subtitle="Gestión de testimonios que aparecen en la landing"
+        dataTour="testimonials.jumbotron"
         action={
           <Button variant="contained" color="secondary" startIcon={<Plus size={16} />} onClick={openCreate}>
             Nuevo Testimonio
@@ -166,7 +167,7 @@ export function TestimonialsManager({ testimonials, page, totalPages, total, pag
       />
 
       <Box sx={{ px: 3, pb: 3 }}>
-        <TableContainer>
+        <TableContainer data-tour="testimonials.table">
           <Table>
             <TableHead>
               <TableRow>

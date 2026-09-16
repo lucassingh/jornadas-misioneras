@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
+import Image from 'next/image';
 
 const ACCENT = '#84f649';
 const FG = '#f5f5f0';
@@ -17,19 +18,39 @@ const HEADLINE = [
   { text: 'de sumarte', color: PRIMARY, delay: 0.65 },
 ];
 
-const HEADLINE_SIZE = { xs: '14vw', sm: '12.5vw', md: '11vw', lg: '9.5vw', xl: '8.5vw' };
+// Más chico que antes — deja subir la imagen y mostrar más porción al cargar.
+const HEADLINE_SIZE = { xs: '11.5vw', sm: '10vw', md: '9vw', lg: '7.8vw', xl: '7vw' };
 
-// Video full-bleed: fills the entire section
-const VIDEO_POS = {
-  position: 'absolute' as const,
-  inset: 0,
-};
+// Mismo valor para el padding horizontal y el espacio debajo de la imagen —
+// la foto queda "enmarcada" con aire igual a los costados y abajo.
+const SECTION_PX = { xs: '20px', md: '60px', xl: '80px' };
+
+const SLIDES = ['/hero/img-1.webp', '/hero/img-2.webp', '/hero/img-3.webp'];
+const SLIDE_INTERVAL_MS = 6000;
+const SLIDE_FADE_S = 3;
+
+// PageLoader (fixed overlay, z-index 9998) covers the whole screen for its
+// own GSAP timeline: 3× 0.45s pulse + 0.7s move-to-navbar, with the overlay
+// fade overlapping the last 0.3s of that move — it clears at ~2.2s. Any
+// entrance animation that starts on mount plays out entirely behind it, so
+// by the time it lifts the hero already looks static. Gate the reveal on
+// this instead of firing blind at t=0.
+const LOADER_CLEAR_MS = 2250;
 
 export function HeroLanding() {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [active, setActive] = useState(0);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    videoRef.current?.play().catch(() => {});
+    const id = setInterval(() => {
+      setActive((i) => (i + 1) % SLIDES.length);
+    }, SLIDE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), LOADER_CLEAR_MS);
+    return () => clearTimeout(t);
   }, []);
 
   return (
@@ -38,77 +59,20 @@ export function HeroLanding() {
       sx={{
         position: 'relative',
         width: '100%',
-        minHeight: '100vh',
         backgroundColor: BG,
-        display: 'flex',
-        alignItems: 'flex-end',
         overflow: 'hidden',
+        pt: { xs: '92px', md: '132px' },
+        px: SECTION_PX,
+        pb: SECTION_PX,
       }}
     >
-      {/* ── VIDEO (z=0, below overlays) ── */}
-      <Box sx={{ ...VIDEO_POS, zIndex: 0, overflow: 'hidden' }}>
-        <video
-          ref={videoRef}
-          src="/videos/video.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-            filter: 'brightness(1.4)',
-          }}
-        />
-      </Box>
-
-      {/* ── OVERLAYS (z=1) — apilados sobre el video full-bleed ── */}
-
-      {/* 1. Velo oscuro uniforme para contraste de títulos */}
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          pointerEvents: 'none',
-          backgroundColor: 'rgba(13,12,12,0.38)',
-        }}
-      />
-
-      {/* 2. Fade simétrico top + bottom (mismo peso visual arriba que abajo) */}
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          pointerEvents: 'none',
-          background: `
-            linear-gradient(to bottom, ${BG} 0%, rgba(13,12,12,0.7) 12%, rgba(13,12,12,0.15) 32%, transparent 48%),
-            linear-gradient(to top,    ${BG} 0%, rgba(13,12,12,0.9) 18%, rgba(13,12,12,0.25) 45%, transparent 60%)
-          `,
-        }}
-      />
-
-      {/* ── TEXTO ── */}
-      <Box
-        sx={{
-          position: 'relative',
-          zIndex: 2,
-          width: '100%',
-          px: { xs: '20px', md: '60px', xl: '80px' },
-          pb: { xs: '56px', md: '72px', xl: '88px' },
-        }}
-      >
+      {/* ── TEXTO — arriba, alineado a la izquierda ── */}
+      <Box sx={{ mb: { xs: '24px', sm: '32px', md: '40px' } }}>
         {/* Eyebrow */}
         <Box sx={{ overflow: 'hidden', mb: { xs: '16px', md: '22px' } }}>
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: '0%' }}
+            animate={ready ? { y: '0%' } : { y: '100%' }}
             transition={{ duration: 0.6, delay: 0.35, ease: EASE }}
           >
             <Box
@@ -130,13 +94,19 @@ export function HeroLanding() {
           </motion.div>
         </Box>
 
-        {/* Headline — línea por línea con mask reveal */}
+        {/* Headline — línea por línea, mask reveal + blur-to-foco y un leve
+            overshoot de escala; la entrada "grande" que pide un hero premium */}
         {HEADLINE.map(({ text, color, delay }) => (
-          <Box key={text} sx={{ overflow: 'hidden' }}>
+          <Box key={text} sx={{ overflow: 'hidden', py: '0.06em' }}>
             <motion.div
-              initial={{ y: '105%' }}
-              animate={{ y: '0%' }}
-              transition={{ duration: 0.82, delay, ease: EASE }}
+              initial={{ y: '105%', opacity: 0, scale: 1.06, filter: 'blur(14px)' }}
+              animate={
+                ready
+                  ? { y: '0%', opacity: 1, scale: 1, filter: 'blur(0px)' }
+                  : { y: '105%', opacity: 0, scale: 1.06, filter: 'blur(14px)' }
+              }
+              transition={{ duration: 1.15, delay, ease: EASE }}
+              style={{ transformOrigin: 'left bottom' }}
             >
               <Box
                 sx={{
@@ -158,7 +128,7 @@ export function HeroLanding() {
         {/* Subtítulo + CTA */}
         <motion.div
           initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
           transition={{ duration: 0.7, delay: 0.88, ease: 'easeOut' }}
         >
           <Box
@@ -224,47 +194,46 @@ export function HeroLanding() {
         </motion.div>
       </Box>
 
-      {/* ── Scroll indicator ── */}
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: { xs: '24px', md: '32px' },
-          right: { xs: '20px', md: '60px', xl: '80px' },
-          zIndex: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-        }}
+      {/* ── IMAGEN — box propio, sin overlay, entra desde abajo. Gateado por
+          `ready` igual que el texto (ver LOADER_CLEAR_MS): como la imagen
+          ya asoma en el viewport inicial por el diseño "cortado", un gate
+          por scroll (whileInView) no hacía falta — el problema real era el
+          loader, no la posición. Adentro, un slider automático a fade entre
+          3 fotos, fijo en el lugar — no se desliza, una se apaga mientras
+          la otra aparece. ── */}
+      <motion.div
+        initial={{ y: 110, opacity: 0 }}
+        animate={ready ? { y: 0, opacity: 1 } : { y: 110, opacity: 0 }}
+        transition={{ duration: 1.1, delay: 1, ease: EASE }}
       >
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.6 }}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+        <Box
+          sx={{
+            position: 'relative',
+            width: '100%',
+            height: { xs: '58vh', sm: '68vh', md: '80vh' },
+            borderRadius: { xs: '16px', md: '24px' },
+            overflow: 'hidden',
+          }}
         >
-          <Box
-            sx={{
-              fontFamily: FONT_BODY,
-              fontSize: '10px',
-              fontWeight: 500,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'rgba(245,245,240,0.35)',
-              writingMode: 'vertical-rl',
-              mb: '8px',
-            }}
-          >
-            Scroll
-          </Box>
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 1.4 }}
-          >
-            <Box sx={{ width: '1px', height: '52px', backgroundColor: 'rgba(245,245,240,0.25)' }} />
-          </motion.div>
-        </motion.div>
-      </Box>
+          {SLIDES.map((src, i) => (
+            <motion.div
+              key={src}
+              animate={{ opacity: active === i ? 1 : 0 }}
+              transition={{ duration: SLIDE_FADE_S, ease: 'easeInOut' }}
+              style={{ position: 'absolute', inset: 0 }}
+            >
+              <Image
+                src={src}
+                alt=""
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                style={{ objectFit: 'cover', filter: 'brightness(1.08) contrast(1.06) saturate(1.15)' }}
+              />
+            </motion.div>
+          ))}
+        </Box>
+      </motion.div>
     </Box>
   );
 }

@@ -65,7 +65,7 @@ export function Step4About({ form }: Props) {
   const targetAudience = useController({ name: 'targetAudience', control });
 
   return (
-    <Box sx={sectionSx}>
+    <Box data-tour="eventForm.step3.panel" sx={sectionSx}>
       <Grid container spacing={3}>
 
         {/* ── Panel de instrucciones ─────────────────────────────────────── */}

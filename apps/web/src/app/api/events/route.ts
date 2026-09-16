@@ -40,16 +40,13 @@ export async function POST(req: NextRequest) {
   if (!user) return unauthorized();
 
   const body = await req.json();
-  console.log('[POST /api/events] body recibido:', JSON.stringify(body, null, 2));
 
   const parsed = createEventSchema.safeParse(body);
   if (!parsed.success) {
-    console.log('[POST /api/events] Zod error:', JSON.stringify(parsed.error.flatten(), null, 2));
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
   const { pricing, startDate, endDate, ...rest } = parsed.data;
-  console.log('[POST /api/events] datos parseados OK, creando en DB...');
 
   try {
     const event = await prisma.event.create({
@@ -63,7 +60,6 @@ export async function POST(req: NextRequest) {
       include: EVENT_INCLUDE,
     });
 
-    console.log('[POST /api/events] Evento creado con ID:', event.id);
     return NextResponse.json({ data: event }, { status: 201 });
   } catch (err) {
     console.error('[POST /api/events] Error de Prisma:', err);

@@ -155,6 +155,7 @@ export function CountriesManager({ countries, page, totalPages, total, pageSize 
       <Jumbotron
         title="Países"
         subtitle="Gestión de países disponibles en la plataforma"
+        dataTour="countries.jumbotron"
         action={
           <Button variant="contained" color="secondary" startIcon={<Plus size={16} />} onClick={openCreate}>
             Nuevo País
@@ -162,7 +163,7 @@ export function CountriesManager({ countries, page, totalPages, total, pageSize 
         }
       />
       <Box sx={{ px: 3, pb: 3 }}>
-        <TableContainer>
+        <TableContainer data-tour="countries.table">
           <Table>
             <TableHead>
               <TableRow>

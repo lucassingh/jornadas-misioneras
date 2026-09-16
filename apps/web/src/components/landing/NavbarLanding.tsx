@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Image from 'next/image';
 import Link from 'next/link';
+import { scrollToSection } from '@/lib/scrollToSection';
 
 const LINKS = [
   { label: 'Inicio',   sectionId: ''         },
@@ -12,34 +13,6 @@ const LINKS = [
   { label: 'Sedes',    sectionId: 'sedes'     },
   { label: 'Eventos',  sectionId: 'eventos'   },
 ];
-
-function getNavH(): number {
-  return window.innerWidth >= 900 ? 72 : 64;
-}
-
-function scrollToSection(id: string) {
-  window.dispatchEvent(new CustomEvent('jm:nav-start'));
-  window.scrollTo({ top: window.scrollY, left: window.scrollX });
-
-  requestAnimationFrame(() => {
-    if (!id) {
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
-        return;
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    const el = document.getElementById(id);
-    if (!el) {
-      // Not on the home page — navigate there with the hash anchor
-      window.location.href = `/#${id}`;
-      return;
-    }
-    const top = el.getBoundingClientRect().top + window.scrollY - getNavH();
-    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-  });
-}
 
 const PRIMARY = '#2235fd';
 const ACCENT = '#84f649';
@@ -58,6 +31,15 @@ export function NavbarLanding() {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Landing en URL con hash (ej: /#eventos) — esperar a que el PageLoader
+  // termine y el layout se asiente antes de hacer scroll con offset de navbar.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const timer = setTimeout(() => scrollToSection(id), 2300);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

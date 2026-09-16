@@ -158,6 +158,7 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
       <Jumbotron
         title="Provincias"
         subtitle="Gestión de provincias organizadas por país"
+        dataTour="provinces.jumbotron"
         action={
           <Button variant="contained" color="secondary" startIcon={<Plus size={16} />} onClick={openCreate}>
             Nueva Provincia
@@ -165,7 +166,7 @@ export function ProvincesManager({ provinces, countries, page, totalPages, total
         }
       />
       <Box sx={{ px: 3, pb: 3 }}>
-        <TableContainer>
+        <TableContainer data-tour="provinces.table">
           <Table>
             <TableHead>
               <TableRow>
