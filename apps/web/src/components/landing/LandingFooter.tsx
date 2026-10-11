@@ -5,6 +5,7 @@ import { motion, useInView } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Image from 'next/image';
 import Link from 'next/link';
+import type { FooterContent, ContactContent } from '@/lib/content';
 
 const ACCENT = '#84f649';
 const FG = '#f5f5f0';
@@ -123,7 +124,14 @@ function SplitHoverLink({
   );
 }
 
-export function LandingFooter() {
+interface Props {
+  /** Frase grande, editable desde el dashboard ("Contenido del sitio → Pie de página"). */
+  content: FooterContent;
+  /** Email e Instagram ("Contenido del sitio → Contacto y redes"). */
+  contact: ContactContent;
+}
+
+export function LandingFooter({ content, contact }: Props) {
   const headRef = useRef<HTMLDivElement>(null);
   const headInView = useInView(headRef, { once: true, amount: 0.25 });
 
@@ -139,6 +147,7 @@ export function LandingFooter() {
   return (
     <Box
       component="footer"
+      id="footer"
       sx={{
         backgroundColor: BG,
         color: FG,
@@ -158,7 +167,7 @@ export function LandingFooter() {
           pb: { xs: '28px', md: '44px' },
         }}
       >
-        {['Conectando fe y misión', 'en toda Latinoamérica.'].map((line, i) => (
+        {[content.titleLine1, content.titleLine2].map((line, i) => (
           <Box key={i} sx={{ overflow: 'hidden' }}>
             <motion.div
               initial={{ y: '105%' }}
@@ -271,7 +280,7 @@ export function LandingFooter() {
           >
             <Box
               component="a"
-              href="mailto:jornadasmisionerasnacionales@gmail.com"
+              href={`mailto:${contact.email}`}
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -288,7 +297,7 @@ export function LandingFooter() {
                 <rect x="2" y="4" width="20" height="16" rx="2" />
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
               </svg>
-              <span style={{ whiteSpace: 'nowrap' }}>jornadasmisionerasnacionales@gmail.com</span>
+              <span style={{ whiteSpace: 'nowrap' }}>{contact.email}</span>
             </Box>
           </motion.div>
         </Box>
@@ -323,7 +332,7 @@ export function LandingFooter() {
           >
             <Box
               component="a"
-              href="https://www.instagram.com/jornadasmisionerascc"
+              href={contact.instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               sx={{
@@ -353,7 +362,7 @@ export function LandingFooter() {
                 <circle cx="12" cy="12" r="4" />
                 <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none" />
               </svg>
-              @jornadasmisionerascc
+              {contact.instagramHandle}
             </Box>
           </motion.div>
         </Box>

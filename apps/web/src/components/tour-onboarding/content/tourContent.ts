@@ -30,6 +30,7 @@ export const shellContent = {
     '/dashboard/countries': 'Administrá los países disponibles para asociar a un evento.',
     '/dashboard/provinces': 'Administrá las provincias, agrupadas por país.',
     '/dashboard/locations': 'Administrá las localidades (ciudades) donde se realizan los eventos.',
+    '/dashboard/content': 'Editá los textos, fotos y el video de la landing sin tocar código — cada sección del sitio tiene su propia pantalla.',
   } as Record<string, string>,
 };
 
@@ -79,8 +80,8 @@ export const eventFormContent = {
       body: 'Nombre, email y WhatsApp de quien organiza, para que los asistentes puedan comunicarse.',
     },
     {
-      title: 'Pagos',
-      body: 'Marcá si el evento tiene costo. Con costo, elegís entre pago único (precio early y normal) o dos cuotas, cada una con su fecha límite. El total estimado se calcula solo.',
+      title: 'Precio del evento',
+      body: 'Marcá si el evento tiene costo. Si tiene, cargás dos montos: uno si se paga hasta dos meses antes del evento y otro, un poco más alto, si se paga hasta un mes antes. Las fechas límite se calculan solas a partir de la fecha de inicio.',
     },
     {
       title: 'Revisión',
@@ -93,8 +94,46 @@ export const eventFormContent = {
     'eventForm.step2': 'Ubicación',
     'eventForm.step3': 'Sobre el evento',
     'eventForm.step4': 'Contacto',
-    'eventForm.step5': 'Pagos',
+    'eventForm.step5': 'Precio',
     'eventForm.step6': 'Revisión',
+  },
+};
+
+// ── Tours: Contenido del sitio (CMS de la landing) ──
+
+export const contentOverviewContent = {
+  pageId: 'content',
+  overview: {
+    title: 'Contenido del sitio',
+    body: 'Desde acá se editan los textos, fotos y el video de la landing sin tocar código. Cada tarjeta es una sección del sitio, en el mismo orden en que aparece al hacer scroll.',
+  },
+  list: {
+    title: 'Las secciones',
+    body: 'Entrá a una sección para cambiar sus textos o imágenes. Cada tarjeta dice si tiene cambios propios o si sigue con el texto original, y cuándo se editó por última vez.',
+  },
+  groupLabels: {
+    'content.overview': 'Encabezado',
+    'content.list': 'Secciones del sitio',
+  },
+};
+
+export const contentEditorContent = {
+  form: {
+    title: 'Los campos',
+    body: 'Cada campo explica dónde se ve en el sitio y cuántos caracteres admite. Si te pasás del límite, se marca en rojo: es para que el texto no rompa el diseño.',
+  },
+  preview: {
+    title: 'Vista previa',
+    body: 'A medida que escribís, la vista previa cambia. Es aproximada: muestra cómo quedan los textos, no el sitio pixel por pixel.',
+  },
+  actions: {
+    title: 'Guardar o restaurar',
+    body: '“Guardar cambios” publica al instante en el sitio. “Restaurar original” vuelve a los textos con los que se lanzó el sitio.',
+  },
+  groupLabels: {
+    'contentEditor.form': 'Campos',
+    'contentEditor.preview': 'Vista previa',
+    'contentEditor.actions': 'Guardar / restaurar',
   },
 };
 

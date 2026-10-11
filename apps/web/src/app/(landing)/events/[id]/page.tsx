@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getPublicEvents, getPublicEventById } from '@/lib/queries/public-events';
 import { getPublicTestimonials } from '@/lib/queries/public-testimonials';
+import { getSiteContent } from '@/lib/queries/site-content';
 import { EventDetailSlider } from '@/components/landing/EventDetailSlider';
 import { EventDetailContent, type EventDetailProps } from '@/components/landing/EventDetailContent';
 import { TestimonialsLanding } from '@/components/landing/TestimonialsLanding';
@@ -18,9 +19,10 @@ interface Props {
 }
 
 export default async function EventDetailPage({ params }: Props) {
-  const [event, testimonials] = await Promise.all([
+  const [event, testimonials, content] = await Promise.all([
     getPublicEventById(Number(params.id)),
     getPublicTestimonials(),
+    getSiteContent(),
   ]);
   if (!event) notFound();
 
@@ -45,20 +47,12 @@ export default async function EventDetailPage({ params }: Props) {
     contactName:      event.contactName,
     contactEmail:     event.contactEmail,
     contactPhone:     event.contactPhone,
-    pricing: event.pricing ? {
-      paymentSystem:               event.pricing.paymentSystem,
-      registrationEarlyAmount:     Number(event.pricing.registrationEarlyAmount),
-      registrationEarlyDeadline:   event.pricing.registrationEarlyDeadline?.toISOString() ?? null,
-      registrationLateAmount:      Number(event.pricing.registrationLateAmount),
-      registrationLateDeadline:    event.pricing.registrationLateDeadline?.toISOString() ?? null,
-      eventPaymentEarlyAmount:     event.pricing.eventPaymentEarlyAmount    != null ? Number(event.pricing.eventPaymentEarlyAmount)    : null,
-      eventPaymentDeadline:        event.pricing.eventPaymentDeadline?.toISOString()   ?? null,
-      eventPaymentAtEventAmount:   event.pricing.eventPaymentAtEventAmount  != null ? Number(event.pricing.eventPaymentAtEventAmount)  : null,
-      installment1Amount:          event.pricing.installment1Amount         != null ? Number(event.pricing.installment1Amount)         : null,
-      installment1Deadline:        event.pricing.installment1Deadline?.toISOString()   ?? null,
-      installment2Amount:          event.pricing.installment2Amount         != null ? Number(event.pricing.installment2Amount)         : null,
-      totalAmount:                 event.pricing.totalAmount                != null ? Number(event.pricing.totalAmount)                : null,
-    } : null,
+    pricing: event.pricing
+      ? {
+          priceTwoMonthsBefore: Number(event.pricing.priceTwoMonthsBefore),
+          priceOneMonthBefore:  Number(event.pricing.priceOneMonthBefore),
+        }
+      : null,
   };
 
   return (
@@ -80,13 +74,13 @@ export default async function EventDetailPage({ params }: Props) {
 
         {/* Right — scrollable event detail */}
         <div style={{ width: '50%', minHeight: '100vh' }}>
-          <EventDetailContent {...contentProps} />
+          <EventDetailContent {...contentProps} content={content.eventDetail} />
         </div>
       </div>
 
       {/* ── Post-scroll sections ──────────────────────────────────────────── */}
-      <TestimonialsLanding testimonials={testimonials} />
-      <CTALanding />
+      <TestimonialsLanding testimonials={testimonials} content={content.testimonials} />
+      <CTALanding content={content.cta} />
     </>
   );
 }

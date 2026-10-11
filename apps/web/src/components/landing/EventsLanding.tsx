@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
 import { EventSlider } from './EventSlider';
 import type { PublicEvent } from '@/lib/queries/public-events';
+import type { SectionHeaderContent } from '@/lib/content';
 
 const BG         = '#2235fd';
 const BG_DARK    = '#0d0c0c';
@@ -30,7 +31,7 @@ function groupByProvince(events: PublicEvent[]): ProvinceGroup[] {
   return Array.from(map.entries()).map(([province, evts]) => ({ province, events: evts }));
 }
 
-function EmptyState() {
+function EmptyState({ text }: { text: string }) {
   return (
     <Box
       sx={{
@@ -42,16 +43,18 @@ function EmptyState() {
         letterSpacing: '-0.02em',
       }}
     >
-      Próximamente se anunciarán los eventos.
+      {text}
     </Box>
   );
 }
 
 interface Props {
   events: PublicEvent[];
+  /** Encabezado editable desde el dashboard ("Contenido del sitio → Eventos"). */
+  content: SectionHeaderContent;
 }
 
-export function EventsLanding({ events }: Props) {
+export function EventsLanding({ events, content }: Props) {
   const groups = useMemo(() => groupByProvince(events), [events]);
   const [activeLocationId, setActiveLocationId] = useState<number | null>(null);
 
@@ -101,17 +104,17 @@ export function EventsLanding({ events }: Props) {
             }}
           >
             <Box sx={{ width: '20px', height: '1.5px', backgroundColor: PRIMARY, flexShrink: 0 }} />
-            Eventos
+            {content.eyebrow}
           </Box>
         </motion.div>
 
         {/* Headline */}
         {[
-          { text: 'Próximos eventos',  color: BG_DARK, delay: 0.08 },
-          { text: 'misioneros.',       color: PRIMARY,  delay: 0.2  },
-        ].map(({ text, color, delay }) => (
+          { text: content.titleLine1, color: BG_DARK, delay: 0.08 },
+          { text: content.titleLine2, color: PRIMARY,  delay: 0.2  },
+        ].map(({ text, color, delay }, i) => (
           <motion.div
-            key={text}
+            key={i}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0 }}
@@ -149,7 +152,7 @@ export function EventsLanding({ events }: Props) {
               maxWidth:   '540px',
             }}
           >
-            Encontrá el evento más cercano y sumate a la misión.
+            {content.description}
           </Box>
         </motion.div>
       </Box>
@@ -157,7 +160,7 @@ export function EventsLanding({ events }: Props) {
       {/* ── Sliders por provincia ── */}
       <Box sx={{ pt: { xs: '40px', md: '56px' }, pb: { xs: '48px', md: '72px' } }}>
         {events.length === 0 ? (
-          <EmptyState />
+          <EmptyState text={content.emptyText} />
         ) : (
           groups.map((group, gIdx) => {
             const startIndex = groups

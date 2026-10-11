@@ -17,6 +17,7 @@ import {
   User, Info, CreditCard, Building2, Image as ImageIcon,
 } from 'lucide-react';
 import { COLOR_TOKENS } from '@jornadas/ui';
+import { getPricingTiers, isSinglePrice } from '@/lib/pricing';
 
 interface EventDetail {
   id: number;
@@ -39,18 +40,8 @@ interface EventDetail {
   province: { name: string; region: string | null };
   location: { name: string };
   pricing: {
-    paymentSystem: string;
-    registrationEarlyDeadline: string | Date;
-    registrationEarlyAmount: unknown;
-    registrationLateDeadline: string | Date;
-    registrationLateAmount: unknown;
-    eventPaymentDeadline: string | Date | null;
-    eventPaymentEarlyAmount: unknown | null;
-    eventPaymentAtEventAmount: unknown | null;
-    installment1Deadline: string | Date | null;
-    installment1Amount: unknown | null;
-    installment2Amount: unknown | null;
-    totalAmount: unknown | null;
+    priceTwoMonthsBefore: unknown;
+    priceOneMonthBefore: unknown;
   } | null;
 }
 
@@ -130,6 +121,42 @@ function PricingRow({ label, date, amount }: { label: string; date?: string | Da
         {date && <Typography variant="caption" color="text.disabled">{fmtDate(date)}</Typography>}
       </Box>
       <Typography variant="body2" fontWeight={700}>{fmtAmount(amount)}</Typography>
+    </Box>
+  );
+}
+
+function PricingBlock({
+  startDate,
+  pricing,
+}: {
+  startDate: string | Date;
+  pricing: NonNullable<EventDetail['pricing']>;
+}) {
+  const amounts = {
+    priceTwoMonthsBefore: Number(pricing.priceTwoMonthsBefore),
+    priceOneMonthBefore: Number(pricing.priceOneMonthBefore),
+  };
+  const single = isSinglePrice(amounts);
+  const tiers = getPricingTiers(startDate, amounts) ?? [];
+
+  return (
+    <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'action.hover', mb: 2 }}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+        <Typography variant="overline" fontWeight={700} color="text.secondary" lineHeight={1}>
+          Según cuándo se paga
+        </Typography>
+        <Chip label={single ? 'Precio único' : 'Dos tramos'} size="small" variant="outlined" color="primary" />
+      </Box>
+      {single ? (
+        <PricingRow label="Precio del evento" amount={amounts.priceTwoMonthsBefore} />
+      ) : (
+        tiers.map((t, i) => (
+          <Box key={t.key}>
+            {i > 0 && <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />}
+            <PricingRow label={t.description} date={t.deadline} amount={t.amount} />
+          </Box>
+        ))
+      )}
     </Box>
   );
 }
@@ -359,50 +386,8 @@ export function EventDetailModal({ eventId, onClose }: Props) {
             {event.pricing && (
               <>
                 <Divider sx={{ mb: 2.5 }} />
-                <SectionTitle icon={<CreditCard size={16} />} label="Pagos y aranceles" />
-                <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'action.hover', mb: 2 }}>
-                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                    <Typography variant="overline" fontWeight={700} color="text.secondary" lineHeight={1}>
-                      Inscripción
-                    </Typography>
-                    <Chip
-                      label={event.pricing.paymentSystem === 'SYSTEM_ONE' ? 'Sistema 1' : 'Sistema 2 · Cuotas'}
-                      size="small" variant="outlined" color="primary"
-                    />
-                  </Box>
-                  <PricingRow label="Precio early" date={event.pricing.registrationEarlyDeadline} amount={event.pricing.registrationEarlyAmount} />
-                  <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                  <PricingRow label="Precio normal" date={event.pricing.registrationLateDeadline} amount={event.pricing.registrationLateAmount} />
-                </Box>
-
-                {event.pricing.paymentSystem === 'SYSTEM_ONE' && (
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'action.hover', mb: 2 }}>
-                    <Typography variant="overline" fontWeight={700} color="text.secondary" display="block" lineHeight={1} mb={2}>
-                      Pago del evento
-                    </Typography>
-                    <PricingRow label="Precio early" date={event.pricing.eventPaymentDeadline} amount={event.pricing.eventPaymentEarlyAmount} />
-                    <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                    <PricingRow label="En la jornada" amount={event.pricing.eventPaymentAtEventAmount} />
-                  </Box>
-                )}
-
-                {event.pricing.paymentSystem === 'SYSTEM_TWO' && (
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'action.hover', mb: 2 }}>
-                    <Typography variant="overline" fontWeight={700} color="text.secondary" display="block" lineHeight={1} mb={2}>
-                      Cuotas del evento
-                    </Typography>
-                    <PricingRow label="Cuota 1" date={event.pricing.installment1Deadline} amount={event.pricing.installment1Amount} />
-                    <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />
-                    <PricingRow label="Cuota 2 (en jornada)" amount={event.pricing.installment2Amount} />
-                  </Box>
-                )}
-
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: `${COLOR_TOKENS.brand}15`, border: `1px solid ${COLOR_TOKENS.brand}30`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">Total estimado (mínimo)</Typography>
-                  <Typography variant="h5" fontWeight={800} color="primary">
-                    {fmtAmount(event.pricing.totalAmount)}
-                  </Typography>
-                </Box>
+                <SectionTitle icon={<CreditCard size={16} />} label="Precio del evento" />
+                <PricingBlock startDate={event.startDate} pricing={event.pricing} />
               </>
             )}
 

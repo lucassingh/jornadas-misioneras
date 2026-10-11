@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import Box from '@mui/material/Box';
+import type { VideoContent } from '@/lib/content';
 
 const BG      = '#0d0c0c';
 const FG      = '#f5f5f0';
@@ -33,12 +34,6 @@ const SCREEN_CLIP_PATH =
 
 const WHITE = '#ffffff';
 
-const TITLE_LINES = [
-  { text: '¿Qué son',      color: WHITE },
-  { text: 'las Jornadas',  color: WHITE },
-  { text: 'Misioneras?',   color: WHITE },
-] as const;
-
 function SpeakerIcon({ muted }: { muted: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -55,12 +50,20 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
   );
 }
 
-export function VideoLanding() {
+interface Props {
+  /** Textos y video editables desde el dashboard ("Contenido del sitio → Video"). */
+  content: VideoContent;
+}
+
+export function VideoLanding({ content }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const videoRef   = useRef<HTMLVideoElement>(null);
   const textRef    = useRef<HTMLDivElement>(null);
 
   const [muted, setMuted] = useState(true);
+
+  // La tercera línea es opcional en el dashboard.
+  const titleLines = [content.titleLine1, content.titleLine2, content.titleLine3].filter((l) => l.trim().length > 0);
 
   // Mask-reveal lines start translated *outside* their own overflow:hidden
   // wrapper, which collapses their IntersectionObserver rect to zero (the
@@ -100,6 +103,7 @@ export function VideoLanding() {
   return (
     <Box
       ref={sectionRef}
+      id="video"
       component="section"
       sx={{
         position: 'relative',
@@ -110,6 +114,7 @@ export function VideoLanding() {
         minHeight: { md: '100vh' },
         display: { md: 'flex' },
         alignItems: { md: 'center' },
+        scrollMarginTop: { xs: '64px', md: '72px' },
       }}
     >
       {/* Iluminación ambiente — un solo halo azul desde el centro, sin tocar los bordes */}
@@ -160,14 +165,14 @@ export function VideoLanding() {
                 }}
               >
                 <Box sx={{ width: '28px', height: '1.5px', backgroundColor: ACCENT, flexShrink: 0 }} />
-                Conocé la experiencia
+                {content.eyebrow}
               </Box>
             </motion.div>
           </Box>
 
-          {/* Headline — 3 líneas, mask reveal */}
-          {TITLE_LINES.map(({ text, color }, i) => (
-            <Box key={text} sx={{ overflow: 'hidden' }}>
+          {/* Headline — hasta 3 líneas, mask reveal */}
+          {titleLines.map((text, i) => (
+            <Box key={`${i}-${text}`} sx={{ overflow: 'hidden' }}>
               <motion.div
                 initial={{ y: '105%' }}
                 animate={{ y: textInView ? '0%' : '105%' }}
@@ -180,7 +185,7 @@ export function VideoLanding() {
                     fontWeight: 400,
                     letterSpacing: '-0.02em',
                     lineHeight: 0.98,
-                    color,
+                    color: WHITE,
                   }}
                 >
                   {text}
@@ -203,10 +208,10 @@ export function VideoLanding() {
                 color: MUTED,
                 lineHeight: 1.68,
                 maxWidth: '440px',
+                whiteSpace: 'pre-line',
               }}
             >
-              Un recorrido de fe, comunidad y servicio contado por quienes lo viven.
-              Dale play y descubrí qué pasa en cada Jornada.
+              {content.description}
             </Box>
           </motion.div>
         </Box>
@@ -277,8 +282,9 @@ export function VideoLanding() {
                 </defs>
               </svg>
               <video
+                key={content.videoUrl}
                 ref={videoRef}
-                src="/about-video/video.mp4"
+                src={content.videoUrl}
                 muted={muted}
                 autoPlay
                 loop
@@ -334,7 +340,7 @@ export function VideoLanding() {
           {/* Hint — visible mientras está silenciado */}
           <Box sx={{ position: 'absolute', bottom: { xs: '-34px', md: '-38px' }, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 1 }}>
             <AnimatePresence>
-              {muted && (
+              {muted && content.hint && (
                 <motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -352,7 +358,7 @@ export function VideoLanding() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    Tocá el video para activar el sonido
+                    {content.hint}
                   </Box>
                 </motion.div>
               )}

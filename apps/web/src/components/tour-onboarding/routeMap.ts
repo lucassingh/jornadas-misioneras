@@ -13,12 +13,15 @@ const EXACT_ROUTE_TOUR_MAP: Record<string, string> = {
   '/dashboard/countries': 'countries',
   '/dashboard/provinces': 'provinces',
   '/dashboard/locations': 'locations',
+  '/dashboard/content': 'content',
 };
 
 /** Rutas dinámicas (con un id en el medio) que no se pueden mapear con un string exacto. */
 const PATTERN_ROUTE_TOUR_MAP: { test: (pathname: string) => boolean; tourId: string }[] = [
   // /dashboard/events/123/edit — mismo EventForm, mismo tour que /new.
   { test: (p) => /^\/dashboard\/events\/[^/]+\/edit$/.test(p), tourId: 'eventForm' },
+  // /dashboard/content/hero, /dashboard/content/video, ... — misma pantalla de edición para todas.
+  { test: (p) => /^\/dashboard\/content\/[^/]+$/.test(p), tourId: 'contentEditor' },
 ];
 
 export const getTourIdForPathname = (pathname: string): string | undefined =>

@@ -5,6 +5,7 @@ import { testimonialsListTourDefinition } from './testimonialsListTour';
 import { countriesListTourDefinition } from './countriesListTour';
 import { provincesListTourDefinition } from './provincesListTour';
 import { locationsListTourDefinition } from './locationsListTour';
+import { contentOverviewTourDefinition, contentEditorTourDefinition } from './contentTour';
 import type { TourDefinition } from '../types';
 
 /** Registro central: un `TourDefinition` por cada `tourId` que el dashboard soporta. */
@@ -16,4 +17,6 @@ export const tourRegistry: Record<string, TourDefinition> = {
   countries: countriesListTourDefinition,
   provinces: provincesListTourDefinition,
   locations: locationsListTourDefinition,
+  content: contentOverviewTourDefinition,
+  contentEditor: contentEditorTourDefinition,
 };

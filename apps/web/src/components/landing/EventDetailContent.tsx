@@ -5,6 +5,8 @@ import Box from '@mui/material/Box';
 import { MapPin, Calendar, Users, ExternalLink, Mail, Phone, User, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getPricingTiers, isSinglePrice, type PricingAmounts } from '@/lib/pricing';
+import type { EventDetailSectionContent } from '@/lib/content';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const BG      = '#f5f5f0';
@@ -20,21 +22,6 @@ const FONT_D = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_B = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Pricing {
-  paymentSystem: string;
-  registrationEarlyAmount: number;
-  registrationEarlyDeadline: string | null;
-  registrationLateAmount: number;
-  registrationLateDeadline: string | null;
-  eventPaymentEarlyAmount: number | null;
-  eventPaymentDeadline: string | null;
-  eventPaymentAtEventAmount: number | null;
-  installment1Amount: number | null;
-  installment1Deadline: string | null;
-  installment2Amount: number | null;
-  totalAmount: number | null;
-}
-
 export interface EventDetailProps {
   title: string;
   country: string;
@@ -52,17 +39,22 @@ export interface EventDetailProps {
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
-  pricing: Pricing | null;
+  /** null = evento gratuito */
+  pricing: PricingAmounts | null;
+}
+
+interface Props extends EventDetailProps {
+  /** Textos fijos de la página de evento, editables desde el dashboard. */
+  content: EventDetailSectionContent;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number): string {
-  return `$${n.toLocaleString('es-AR')}`;
+  return `$${n.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
 }
 
-function fmtDate(d: string | null): string | null {
-  if (!d) return null;
-  return format(new Date(d), "d 'de' MMMM yyyy", { locale: es });
+function fmtDate(d: Date): string {
+  return format(d, "d 'de' MMMM yyyy", { locale: es });
 }
 
 // ── Eyebrow label ─────────────────────────────────────────────────────────────
@@ -156,7 +148,7 @@ interface PCardProps {
   num: string;
   label: string;
   amount: number;
-  deadline: string | null;
+  deadline: Date | null;
   bg: string;
   fg?: string;
   border?: string;
@@ -219,8 +211,20 @@ function PCard({ num, label, amount, deadline, bg, fg = LIGHT, border }: PCardPr
 }
 
 // ── Pricing section (dark full-width) ─────────────────────────────────────────
-function PricingSection({ pricing }: { pricing: Pricing }) {
-  const isTwo = pricing.paymentSystem === 'SYSTEM_TWO';
+// Una sola modalidad: dos montos según cuándo se paga (hasta 2 meses antes /
+// hasta 1 mes antes del inicio). Las fechas se derivan de `startDate`
+// (`lib/pricing.ts`). Si ambos montos son iguales, se muestra un precio único.
+function PricingSection({
+  pricing,
+  startDate,
+  content,
+}: {
+  pricing: PricingAmounts;
+  startDate: string;
+  content: EventDetailSectionContent;
+}) {
+  const single = isSinglePrice(pricing);
+  const tiers = getPricingTiers(startDate, pricing) ?? [];
 
   return (
     <Box
@@ -231,141 +235,66 @@ function PricingSection({ pricing }: { pricing: Pricing }) {
         pt: '72px', pb: '80px',
       }}
     >
-      <Eyebrow light>Pagos &amp; Aranceles</Eyebrow>
+      <Eyebrow light>{content.pricingEyebrow}</Eyebrow>
 
       {/* Section headline */}
-      <Box sx={{ mb: '60px' }}>
+      <Box sx={{ mb: '52px' }}>
         <Box sx={{
           fontFamily: FONT_D,
           fontSize: { xs: '2rem', sm: '2.4rem', md: '3rem' },
           letterSpacing: '-0.03em', lineHeight: 1.04, color: LIGHT,
         }}>
-          Inscribite con tiempo,
+          {content.pricingTitleLine1}
         </Box>
         <Box sx={{
           fontFamily: FONT_D,
           fontSize: { xs: '2rem', sm: '2.4rem', md: '3rem' },
           letterSpacing: '-0.03em', lineHeight: 1.04, color: ACCENT,
         }}>
-          ahorrá más.
+          {content.pricingTitleLine2}
         </Box>
       </Box>
 
-      {/* Inscripción sub-block */}
-      <Box sx={{ mb: '32px' }}>
-        <Box sx={{
-          fontFamily: FONT_B, fontSize: '11px', fontWeight: 700,
-          letterSpacing: '0.22em', textTransform: 'uppercase',
-          color: 'rgba(245,245,240,0.28)', mb: '14px',
-        }}>
-          Inscripción
-        </Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <Box sx={{
+        fontFamily: FONT_B, fontSize: '11px', fontWeight: 700,
+        letterSpacing: '0.22em', textTransform: 'uppercase',
+        color: 'rgba(245,245,240,0.28)', mb: '14px',
+      }}>
+        {single ? 'Precio del evento' : 'Según cuándo pagás'}
+      </Box>
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: single ? '1fr' : '1fr 1fr', gap: '12px' }}>
+        {single ? (
           <PCard
             num="01"
-            label="Early bird"
-            amount={pricing.registrationEarlyAmount}
-            deadline={pricing.registrationEarlyDeadline}
+            label="Precio único"
+            amount={pricing.priceTwoMonthsBefore}
+            deadline={null}
             bg={PRIMARY}
           />
-          <PCard
-            num="02"
-            label="Normal"
-            amount={pricing.registrationLateAmount}
-            deadline={pricing.registrationLateDeadline}
-            bg="rgba(245,245,240,0.05)"
-            border="1px solid rgba(245,245,240,0.09)"
-          />
-        </Box>
+        ) : (
+          tiers.map((tier, i) => (
+            <PCard
+              key={tier.key}
+              num={String(i + 1).padStart(2, '0')}
+              label={tier.label}
+              amount={tier.amount}
+              deadline={tier.deadline}
+              bg={i === 0 ? PRIMARY : 'rgba(245,245,240,0.05)'}
+              border={i === 0 ? undefined : '1px solid rgba(245,245,240,0.09)'}
+            />
+          ))
+        )}
       </Box>
 
-      {/* Event payment sub-block */}
-      <Box>
+      {content.pricingNote && (
         <Box sx={{
-          fontFamily: FONT_B, fontSize: '11px', fontWeight: 700,
-          letterSpacing: '0.22em', textTransform: 'uppercase',
-          color: 'rgba(245,245,240,0.28)', mb: '14px',
+          mt: '28px',
+          fontFamily: FONT_B, fontSize: '13px', lineHeight: 1.6,
+          color: 'rgba(245,245,240,0.38)',
+          maxWidth: '520px',
         }}>
-          {isTwo ? 'Cuotas del evento' : 'Pago del evento'}
-        </Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          {isTwo ? (
-            <>
-              {pricing.installment1Amount != null && (
-                <PCard
-                  num="01"
-                  label="Cuota 1"
-                  amount={pricing.installment1Amount}
-                  deadline={pricing.installment1Deadline}
-                  bg={ACCENT}
-                  fg={DARK}
-                />
-              )}
-              {pricing.installment2Amount != null && (
-                <PCard
-                  num="02"
-                  label="Cuota 2 — en jornada"
-                  amount={pricing.installment2Amount}
-                  deadline={null}
-                  bg="rgba(245,245,240,0.05)"
-                  border="1px solid rgba(245,245,240,0.09)"
-                />
-              )}
-            </>
-          ) : (
-            <>
-              {pricing.eventPaymentEarlyAmount != null && (
-                <PCard
-                  num="01"
-                  label="Anticipado"
-                  amount={pricing.eventPaymentEarlyAmount}
-                  deadline={pricing.eventPaymentDeadline}
-                  bg={ACCENT}
-                  fg={DARK}
-                />
-              )}
-              {pricing.eventPaymentAtEventAmount != null && (
-                <PCard
-                  num="02"
-                  label="En jornada"
-                  amount={pricing.eventPaymentAtEventAmount}
-                  deadline={null}
-                  bg="rgba(245,245,240,0.05)"
-                  border="1px solid rgba(245,245,240,0.09)"
-                />
-              )}
-            </>
-          )}
-        </Box>
-      </Box>
-
-      {/* Total */}
-      {pricing.totalAmount != null && (
-        <Box sx={{
-          mt: '44px', pt: '36px',
-          borderTop: '1px solid rgba(245,245,240,0.1)',
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap',
-        }}>
-          <Box>
-            <Box sx={{
-              fontFamily: FONT_B, fontSize: '11px', fontWeight: 700,
-              letterSpacing: '0.22em', textTransform: 'uppercase',
-              color: 'rgba(245,245,240,0.3)', mb: '6px',
-            }}>
-              Total estimado (mínimo)
-            </Box>
-            <Box sx={{ fontFamily: FONT_B, fontSize: '14px', color: 'rgba(245,245,240,0.38)' }}>
-              Inscripción + pago del evento
-            </Box>
-          </Box>
-          <Box sx={{
-            fontFamily: FONT_D,
-            fontSize: { xs: '2.4rem', md: '3.2rem' },
-            letterSpacing: '-0.04em', lineHeight: 1, color: ACCENT,
-          }}>
-            {fmt(pricing.totalAmount)}
-          </Box>
+          {content.pricingNote}
         </Box>
       )}
     </Box>
@@ -373,7 +302,7 @@ function PricingSection({ pricing }: { pricing: Pricing }) {
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function EventDetailContent(props: EventDetailProps) {
+export function EventDetailContent({ content, ...props }: Props) {
   const startDate = format(new Date(props.startDate), "d 'de' MMMM", { locale: es });
   const endDate   = format(new Date(props.endDate), "d 'de' MMMM yyyy", { locale: es });
   const hasContact = props.contactName || props.contactEmail || props.contactPhone;
@@ -516,7 +445,9 @@ export function EventDetailContent(props: EventDetailProps) {
       }
 
       {/* ── 3. PRICING ────────────────────────────────────────────────────── */}
-      {props.pricing && <PricingSection pricing={props.pricing} />}
+      {props.pricing && (
+        <PricingSection pricing={props.pricing} startDate={props.startDate} content={content} />
+      )}
 
       {/* ── 4. CONTACT ────────────────────────────────────────────────────── */}
       {hasContact && (
@@ -655,14 +586,14 @@ export function EventDetailContent(props: EventDetailProps) {
                 letterSpacing: '0.2em', textTransform: 'uppercase',
                 color: 'rgba(245,245,240,0.35)', mb: '6px',
               }}>
-                Registrarme en este evento
+                {content.ctaEyebrow}
               </Box>
               <Box sx={{
                 fontFamily: FONT_D,
                 fontSize: { xs: '1.5rem', md: '2rem' },
                 letterSpacing: '-0.025em', lineHeight: 1.1, color: LIGHT,
               }}>
-                Reservá tu lugar ahora
+                {content.ctaTitle}
               </Box>
             </Box>
             <Box sx={{

@@ -243,6 +243,24 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
+## 🧾 Reglas de negocio y módulos vigentes (actualizado 2026-10-11)
+
+### Precio del evento (única modalidad)
+- Un evento con costo tiene **dos montos según cuándo se paga**: `priceTwoMonthsBefore` (hasta 2 meses antes del inicio) y `priceOneMonthBefore` (hasta 1 mes antes). Evento gratuito = sin fila `EventPricing`.
+- Las fechas límite **no se guardan**: se derivan de `startDate` en `apps/web/src/lib/pricing.ts`. Todo lo que muestre precios (wizard, modal, landing) pasa por ese helper.
+- Regla: `priceTwoMonthsBefore <= priceOneMonthBefore`. Montos iguales = precio único.
+- Los "Sistema 1 / Sistema 2" anteriores (inscripción + cuotas) **no existen más**; la migración `20261011120000_simplify_event_pricing` convierte los datos viejos.
+
+### Contenido del sitio (CMS de la landing)
+- Textos, fotos y video de la landing se editan en **Dashboard → Contenido del sitio** (solo ADMIN). Doc: `apps/docs/5-SITE-CONTENT.md`.
+- Registro único de secciones en `apps/web/src/lib/content/sections.ts`: de la lista `fields` salen el schema Zod, el formulario del dashboard y los límites de caracteres. Para agregar un texto editable: agregalo ahí y consumilo por `props.content` en el componente. **No hardcodear textos nuevos en los componentes de la landing.**
+- Tabla `SiteContent` (una fila JSON por sección). Sin fila → defaults del código. Endpoint público: `GET /api/public/content[?section=...]`. Admin: `GET/PUT/DELETE /api/content/[section]`.
+- Cualquier mutación de contenido público llama a `revalidatePublicPages()` (revalida el layout raíz de la landing).
+
+### Infra
+- Local y prod comparten la misma base Neon: las migraciones destructivas se aplican junto con el deploy (`vercel.json` corre `prisma migrate deploy`), no antes.
+- Cloudinary: carpetas `events`, `avatars` y `site` (allowlist en `/api/upload/signature`). `CloudinaryUpload` soporta `resourceType="video"` (máx. 100 MB).
+
 ### ⚠️ Nota para Claude
 
 Nunca asumas datos o requerimientos. Siempre confirma antes de crear modelos de base de datos, nuevas rutas API o cambios estructurales. Usa comentarios en el código para explicar decisiones que violen DRY/SOLID (con justificación).

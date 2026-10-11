@@ -53,19 +53,10 @@ export interface EventData {
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  // Prisma devuelve Decimal — se convierte a number en buildDefaultValues
   pricing?: {
-    paymentSystem: string;
-    registrationEarlyDeadline: Date | string;
-    registrationEarlyAmount: unknown;
-    registrationLateDeadline: Date | string;
-    registrationLateAmount: unknown;
-    eventPaymentDeadline: Date | string | null;
-    eventPaymentEarlyAmount: unknown | null;
-    eventPaymentAtEventAmount: unknown | null;
-    installment1Deadline: Date | string | null;
-    installment1Amount: unknown | null;
-    installment2Amount: unknown | null;
-    totalAmount: unknown | null;
+    priceTwoMonthsBefore: unknown;
+    priceOneMonthBefore: unknown;
   } | null;
 }
 
@@ -77,7 +68,7 @@ const STEPS = [
   { label: 'Ubicación', desc: 'País, provincia, localidad' },
   { label: 'Sobre el evento', desc: 'Descripción y detalles' },
   { label: 'Contacto', desc: 'Datos del organizador' },
-  { label: 'Pagos', desc: 'Aranceles e inscripción' },
+  { label: 'Precio', desc: 'Precio del evento' },
   { label: 'Revisión', desc: 'Confirmar y publicar' },
 ];
 
@@ -120,7 +111,7 @@ const FIELD_LABELS: Record<string, string> = {
   contactName: 'Nombre de contacto',
   contactEmail: 'Email de contacto',
   contactPhone: 'Teléfono (WhatsApp)',
-  pricing: 'Pagos y aranceles',
+  pricing: 'Precio del evento',
 };
 
 interface ErrorItem { field: string; label: string; message: string }
@@ -327,37 +318,13 @@ function buildDefaultValues(event?: EventData): Partial<CreateEventInput> {
   };
 
   const p = event.pricing;
-  if (!p) return base;
-
-  if (p.paymentSystem === 'SYSTEM_ONE') {
-    return {
-      ...base,
-      pricing: {
-        paymentSystem: 'SYSTEM_ONE',
-        registrationEarlyDeadline: fmtDate(p.registrationEarlyDeadline as Date),
-        registrationEarlyAmount: toNum(p.registrationEarlyAmount)!,
-        registrationLateDeadline: fmtDate(p.registrationLateDeadline as Date),
-        registrationLateAmount: toNum(p.registrationLateAmount)!,
-        eventPaymentDeadline: p.eventPaymentDeadline ? fmtDate(p.eventPaymentDeadline as Date) : '',
-        eventPaymentEarlyAmount: toNum(p.eventPaymentEarlyAmount) ?? 0,
-        eventPaymentAtEventAmount: toNum(p.eventPaymentAtEventAmount) ?? 0,
-        totalAmount: toNum(p.totalAmount),
-      },
-    };
-  }
+  if (!p) return { ...base, pricing: null };
 
   return {
     ...base,
     pricing: {
-      paymentSystem: 'SYSTEM_TWO',
-      registrationEarlyDeadline: fmtDate(p.registrationEarlyDeadline as Date),
-      registrationEarlyAmount: toNum(p.registrationEarlyAmount)!,
-      registrationLateDeadline: fmtDate(p.registrationLateDeadline as Date),
-      registrationLateAmount: toNum(p.registrationLateAmount)!,
-      installment1Deadline: p.installment1Deadline ? fmtDate(p.installment1Deadline as Date) : '',
-      installment1Amount: toNum(p.installment1Amount) ?? 0,
-      installment2Amount: toNum(p.installment2Amount) ?? 0,
-      totalAmount: toNum(p.totalAmount),
+      priceTwoMonthsBefore: toNum(p.priceTwoMonthsBefore)!,
+      priceOneMonthBefore: toNum(p.priceOneMonthBefore)!,
     },
   };
 }

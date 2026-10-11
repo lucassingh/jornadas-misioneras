@@ -1,11 +1,13 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Image from 'next/image';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SECTIONS, type AboutContent } from '@/lib/content';
+import { isOptimizableImage } from '@/lib/imageSrc';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,62 +21,37 @@ const EASE    = [0.76, 0, 0.24, 1] as const;
 const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_BODY    = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 
-const PILLARS = [
-  {
-    num: '01',
-    label: 'Misión',
-    title: 'Misión',
-    body: 'Movilizamos voluntarios a comunidades necesitadas para realizar acciones de servicio y apoyo, brindando ayuda tangible y compartiendo el mensaje de salvación.',
-    img: '/who/img-1.jpg',
-    accent: ACCENT,
-  },
-  {
-    num: '02',
-    label: 'Método',
-    title: 'Método',
-    body: 'Actuamos junto a las comunidades locales, escuchando sus necesidades y uniendo fuerzas para proyectos concretos de servicio y evangelización.',
-    img: '/who/img-2.jpg',
-    accent: PRIMARY,
-  },
-  {
-    num: '03',
-    label: 'Visión',
-    title: 'Visión',
-    body: 'Soñamos con una red de jóvenes y familias comprometidas que trabajan codo a codo para transformar realidades mediante el servicio y la Palabra de Dios.',
-    img: '/who/img-3.jpg',
-    accent: ACCENT,
-  },
-  {
-    num: '04',
-    label: 'Valores',
-    title: 'Valores',
-    body: 'Guiamos nuestro trabajo por el amor al prójimo, la compasión puesta en acción y la convicción de que el cambio real se logra en comunidad y a través de la fe en Jesús.',
-    img: '/who/img-4.jpg',
-    accent: PRIMARY,
-  },
-] as const;
+// Los paneles alternan el color de acento (verde / azul) — fijo por posición,
+// el admin solo edita textos e imagen.
+const PILLAR_ACCENTS = [ACCENT, PRIMARY, ACCENT, PRIMARY];
 
-const BASE_WORDS = [
-  '+25 años',
-  'Comunidad activa',
-  'Fe + Acción',
-  'Colaboración',
-  'Resiliencia',
-  '+25 años',
-  'Comunidad activa',
-  'Fe + Acción',
-  'Colaboración',
-  'Resiliencia',
-  '+25 años',
-  'Comunidad activa',
-  'Fe + Acción',
-];
+// La cinta necesita suficientes palabras para cubrir el ancho de pantalla:
+// repetimos las frases del admin hasta llegar al mismo largo que tenía la lista original.
+const MIN_TICKER_ITEMS = 13;
 
-export function AboutLanding() {
+interface Props {
+  /** Textos, paneles y cinta editables desde el dashboard ("Contenido del sitio → Nosotros"). */
+  content: AboutContent;
+}
+
+export function AboutLanding({ content }: Props) {
   const sectionRef   = useRef<HTMLDivElement>(null);
   const wrapperRef   = useRef<HTMLDivElement>(null);
   const trackRef     = useRef<HTMLDivElement>(null);
   const marqueeRef   = useRef<HTMLDivElement>(null);
+
+  const pillars = content.pillars.map((p, i) => ({
+    ...p,
+    num: String(i + 1).padStart(2, '0'),
+    accent: PILLAR_ACCENTS[i % PILLAR_ACCENTS.length],
+  }));
+
+  const tickerWords = useMemo(() => {
+    const words = content.tickerWords.map((w) => w.text.trim()).filter(Boolean);
+    const source = words.length > 0 ? words : SECTIONS.about.defaults.tickerWords.map((w) => w.text);
+    const total = Math.max(MIN_TICKER_ITEMS, source.length * 3);
+    return Array.from({ length: total }, (_, i) => source[i % source.length]);
+  }, [content.tickerWords]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -98,7 +75,7 @@ export function AboutLanding() {
     }, wrapper);
 
     return () => ctx.revert();
-  }, []);
+  }, [pillars.length]);
 
   useEffect(() => {
     const marquee = marqueeRef.current;
@@ -112,7 +89,7 @@ export function AboutLanding() {
     });
 
     return () => { tween.kill(); };
-  }, []);
+  }, [tickerWords]);
 
   // Refresh ScrollTrigger when a nav-link scroll is about to fire so the
   // pin spacer height is accurate before getBoundingClientRect is called.
@@ -140,11 +117,11 @@ export function AboutLanding() {
       >
         {/* Headline — dos líneas explícitas */}
         {[
-          { text: 'Más que un viaje,', color: FG,     delay: 0.05 },
-          { text: 'una misión compartida.', color: ACCENT, delay: 0.18 },
-        ].map(({ text, color, delay }) => (
+          { text: content.titleLine1, color: FG,     delay: 0.05 },
+          { text: content.titleLine2, color: ACCENT, delay: 0.18 },
+        ].map(({ text, color, delay }, i) => (
           <motion.div
-            key={text}
+            key={i}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0 }}
@@ -182,24 +159,24 @@ export function AboutLanding() {
               maxWidth: '540px',
             }}
           >
-            Transformamos realidades a través del servicio concreto y el encuentro humano.
+            {content.description}
           </Box>
         </motion.div>
       </Box>
 
       {/* ── HORIZONTAL SCROLL — pinned wrapper ── */}
       <Box ref={wrapperRef} sx={{ overflow: 'hidden' }}>
-        {/* Track: 4 panels de 100vw */}
+        {/* Track: N panels de 100vw */}
         <Box
           ref={trackRef}
           sx={{
             display: 'flex',
-            width: `${PILLARS.length * 100}vw`,
+            width: `${pillars.length * 100}vw`,
             height: '100vh',
             willChange: 'transform',
           }}
         >
-          {PILLARS.map((p, idx) => (
+          {pillars.map((p, idx) => (
             <Box
               key={p.num}
               sx={{
@@ -320,7 +297,7 @@ export function AboutLanding() {
 
                   {/* Progress pills */}
                   <Box sx={{ display: 'flex', gap: '8px', mt: '52px' }}>
-                    {PILLARS.map((_, i) => (
+                    {pillars.map((_, i) => (
                       <Box
                         key={i}
                         sx={{
@@ -346,13 +323,16 @@ export function AboutLanding() {
                     backgroundColor: BG,
                   }}
                 >
-                  <Image
-                    src={p.img}
-                    alt={p.title}
-                    fill
-                    style={{ objectFit: 'cover', objectPosition: 'center' }}
-                    sizes="50vw"
-                  />
+                  {p.image && (
+                    <Image
+                      src={p.image}
+                      alt={p.title}
+                      fill
+                      unoptimized={!isOptimizableImage(p.image)}
+                      style={{ objectFit: 'cover', objectPosition: 'center' }}
+                      sizes="50vw"
+                    />
+                  )}
                   {/* Overlay oscuro — menos intenso que el hero */}
                   <Box
                     aria-hidden
@@ -395,7 +375,7 @@ export function AboutLanding() {
               key={copy}
               sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
             >
-              {BASE_WORDS.map((word, i) => (
+              {tickerWords.map((word, i) => (
                 <Box
                   key={`${copy}-${i}`}
                   sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
