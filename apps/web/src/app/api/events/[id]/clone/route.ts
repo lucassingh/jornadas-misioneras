@@ -40,18 +40,8 @@ export async function POST(_req: NextRequest, { params }: Params) {
       ...(pricing && {
         pricing: {
           create: {
-            paymentSystem: pricing.paymentSystem,
-            registrationEarlyDeadline: pricing.registrationEarlyDeadline,
-            registrationEarlyAmount: pricing.registrationEarlyAmount,
-            registrationLateDeadline: pricing.registrationLateDeadline,
-            registrationLateAmount: pricing.registrationLateAmount,
-            totalAmount: pricing.totalAmount,
-            eventPaymentDeadline: pricing.eventPaymentDeadline,
-            eventPaymentEarlyAmount: pricing.eventPaymentEarlyAmount,
-            eventPaymentAtEventAmount: pricing.eventPaymentAtEventAmount,
-            installment1Deadline: pricing.installment1Deadline,
-            installment1Amount: pricing.installment1Amount,
-            installment2Amount: pricing.installment2Amount,
+            priceTwoMonthsBefore: pricing.priceTwoMonthsBefore,
+            priceOneMonthBefore: pricing.priceOneMonthBefore,
           },
         },
       }),

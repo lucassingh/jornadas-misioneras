@@ -1,23 +1,26 @@
-import { Controller, type UseFormReturn } from 'react-hook-form';
+import { useController, type UseFormReturn } from 'react-hook-form';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Divider from '@mui/material/Divider';
+import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { CalendarClock, Tag } from 'lucide-react';
 import { COLOR_TOKENS } from '@jornadas/ui';
-import type { CreateEventInput, PricingInput } from '@/lib/validations/event';
+import type { CreateEventInput } from '@/lib/validations/event';
+import { getPricingDeadlines, PRICING_TIER_COPY, formatPrice } from '@/lib/pricing';
 
 interface Props {
   form: UseFormReturn<CreateEventInput>;
 }
 
 const cardSx = {
-  p: 2.5,
+  p: { xs: 2.5, md: 4 },
   borderRadius: 2,
   border: '1px solid',
   borderColor: 'divider',
@@ -25,291 +28,198 @@ const cardSx = {
   mb: 2,
 };
 
-const subCardSx = {
-  p: 2,
-  borderRadius: 1.5,
-  border: '1px solid',
-  borderColor: 'divider',
-  mb: 2,
-};
+const fmtDeadline = (d: Date) => format(d, "d 'de' MMMM 'de' yyyy", { locale: es });
 
-const EMPTY_SYSTEM_ONE: PricingInput = {
-  paymentSystem: 'SYSTEM_ONE',
-  registrationEarlyDeadline: '',
-  registrationEarlyAmount: 0,
-  registrationLateDeadline: '',
-  registrationLateAmount: 0,
-  eventPaymentDeadline: '',
-  eventPaymentEarlyAmount: 0,
-  eventPaymentAtEventAmount: 0,
-};
+// ── Fila: "cuándo se paga" + fecha límite derivada + monto ────────────────────
 
-const EMPTY_SYSTEM_TWO: PricingInput = {
-  paymentSystem: 'SYSTEM_TWO',
-  registrationEarlyDeadline: '',
-  registrationEarlyAmount: 0,
-  registrationLateDeadline: '',
-  registrationLateAmount: 0,
-  installment1Deadline: '',
-  installment1Amount: 0,
-  installment2Amount: 0,
-};
-
-function calcTotal(p: PricingInput): { min: number; max: number } {
-  if (p.paymentSystem === 'SYSTEM_ONE') {
-    return {
-      min: (p.registrationEarlyAmount || 0) + (p.eventPaymentEarlyAmount || 0),
-      max: (p.registrationLateAmount || 0) + (p.eventPaymentAtEventAmount || 0),
-    };
-  }
-  const base = (p.installment1Amount || 0) + (p.installment2Amount || 0);
-  return {
-    min: (p.registrationEarlyAmount || 0) + base,
-    max: (p.registrationLateAmount || 0) + base,
-  };
-}
-
-const fmt = (n: number) =>
-  n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
-
-function SubLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Typography variant="overline" fontWeight={700} color="text.secondary" display="block" mb={1.5} lineHeight={1}>
-      {children}
-    </Typography>
-  );
-}
-
-function DateAmountRow({
-  dateLabel, dateValue, onDateChange,
-  amountLabel, amountValue, onAmountChange,
-  dateReadOnly,
+function PriceRow({
+  form,
+  name,
+  description,
+  deadline,
+  accent,
 }: {
-  dateLabel: string; dateValue: string; onDateChange: (v: string) => void;
-  amountLabel: string; amountValue: number; onAmountChange: (v: number) => void;
-  dateReadOnly?: boolean;
+  form: UseFormReturn<CreateEventInput>;
+  name: 'pricing.priceTwoMonthsBefore' | 'pricing.priceOneMonthBefore';
+  description: string;
+  deadline: Date | null;
+  accent: string;
 }) {
+  const { field, fieldState } = useController({ name, control: form.control });
+
   return (
-    <Grid container spacing={2} mb={1.5}>
-      <Grid item xs={12} sm={7}>
-        <TextField
-          label={dateLabel}
-          type="date"
-          fullWidth
-          size="small"
-          InputLabelProps={{ shrink: true }}
-          value={dateValue}
-          onChange={(e) => onDateChange(e.target.value)}
-          disabled={dateReadOnly}
-          placeholder={dateReadOnly ? 'En la jornada' : undefined}
-        />
-      </Grid>
-      <Grid item xs={12} sm={5}>
-        <TextField
-          label={amountLabel}
-          type="number"
-          fullWidth
-          size="small"
-          inputProps={{ min: 0, step: 0.01 }}
-          value={amountValue || ''}
-          onChange={(e) => onAmountChange(Number(e.target.value))}
-        />
-      </Grid>
-    </Grid>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 220px' },
+        gap: { xs: 1.5, sm: 3 },
+        alignItems: 'center',
+        py: 2.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        '&:last-of-type': { borderBottom: 'none' },
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+        <Box
+          sx={{
+            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            bgcolor: `${accent}1a`, color: accent,
+          }}
+        >
+          <CalendarClock size={17} />
+        </Box>
+        <Box>
+          <Typography variant="body1" fontWeight={700} lineHeight={1.3}>
+            {description}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>
+            {deadline
+              ? <>Se puede pagar hasta el <strong>{fmtDeadline(deadline)}</strong></>
+              : 'Cargá la fecha de inicio (paso 2) para ver hasta qué día aplica este precio'}
+          </Typography>
+        </Box>
+      </Box>
+
+      <TextField
+        label="Monto"
+        type="number"
+        size="small"
+        fullWidth
+        inputProps={{ min: 0, step: 1, inputMode: 'numeric' }}
+        InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+        value={field.value ?? ''}
+        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+        onBlur={field.onBlur}
+        inputRef={field.ref}
+        error={!!fieldState.error}
+        helperText={fieldState.error?.message}
+      />
+    </Box>
   );
 }
+
+// ── Step ──────────────────────────────────────────────────────────────────────
 
 export function Step5Pricing({ form }: Props) {
-  const { control, formState: { errors } } = form;
+  const { watch, setValue, clearErrors } = form;
 
-  const pricingErrors = errors.pricing as Record<string, { message?: string }> | undefined;
-  const pricingErrorMessages = pricingErrors
-    ? Object.values(pricingErrors).map((e) => e?.message).filter((m): m is string => typeof m === 'string')
-    : [];
+  const pricing = watch('pricing');
+  const startDate = watch('startDate');
+  const hasPricing = pricing != null;
+  const deadlines = getPricingDeadlines(startDate);
+
+  const toggle = (checked: boolean) => {
+    if (checked) {
+      // Montos vacíos a propósito: el schema los marca como requeridos al avanzar.
+      setValue('pricing', { priceTwoMonthsBefore: undefined, priceOneMonthBefore: undefined } as unknown as CreateEventInput['pricing'], { shouldDirty: true });
+    } else {
+      setValue('pricing', null, { shouldDirty: true });
+      clearErrors('pricing');
+    }
+  };
+
+  const two = pricing?.priceTwoMonthsBefore;
+  const one = pricing?.priceOneMonthBefore;
+  const bothLoaded = typeof two === 'number' && typeof one === 'number' && two > 0 && one > 0;
+  const isSingle = bothLoaded && two === one;
 
   return (
-    <Controller
-      name="pricing"
-      control={control}
-      render={({ field }) => {
-        const pricing = field.value as PricingInput | null | undefined;
-        const hasPricing = pricing != null;
-        const system = pricing?.paymentSystem;
+    <Box data-tour="eventForm.step5.panel" sx={cardSx}>
+      <Typography variant="body2" color="text.secondary" mb={2.5}>
+        Dos montos según cuándo se pague. Pagar antes sale más barato.
+      </Typography>
 
-        const update = (patch: Partial<PricingInput>) => {
-          if (!pricing) return;
-          const updated = { ...pricing, ...patch } as PricingInput;
-          const { min } = calcTotal(updated);
-          field.onChange({ ...updated, totalAmount: min });
-        };
+      <FormControlLabel
+        control={<Switch checked={hasPricing} onChange={(e) => toggle(e.target.checked)} />}
+        label={
+          <Typography fontWeight={600}>
+            {hasPricing ? 'Este evento tiene costo' : 'Evento gratuito (sin costo)'}
+          </Typography>
+        }
+        sx={{ mb: hasPricing ? 3 : 0 }}
+      />
 
-        const enablePricing = () => field.onChange({ ...EMPTY_SYSTEM_ONE });
-        const disablePricing = () => field.onChange(null);
+      {hasPricing && (
+        <>
+          <Typography variant="body2" color="text.secondary" mb={1}>
+            Hay dos precios según cuándo se abone: un monto si se paga <strong>dos meses antes</strong> del
+            evento y otro, un poco más alto, si se paga <strong>un mes antes</strong>. Completá el valor de cada uno.
+          </Typography>
 
-        const switchSystem = (sys: 'SYSTEM_ONE' | 'SYSTEM_TWO') => {
-          const regBase = pricing
-            ? {
-                registrationEarlyDeadline: pricing.registrationEarlyDeadline,
-                registrationEarlyAmount: pricing.registrationEarlyAmount,
-                registrationLateDeadline: pricing.registrationLateDeadline,
-                registrationLateAmount: pricing.registrationLateAmount,
-              }
-            : {};
-          const empty = sys === 'SYSTEM_ONE' ? EMPTY_SYSTEM_ONE : EMPTY_SYSTEM_TWO;
-          field.onChange({ ...empty, ...regBase });
-        };
-
-        // Registration inputs shared between both systems
-        const regSection = hasPricing && (
-          <Box sx={subCardSx}>
-            <SubLabel>Inscripción</SubLabel>
-            <DateAmountRow
-              dateLabel="Fecha límite (precio early)"
-              dateValue={pricing.registrationEarlyDeadline}
-              onDateChange={(v) => update({ registrationEarlyDeadline: v })}
-              amountLabel="Monto early ($)"
-              amountValue={pricing.registrationEarlyAmount}
-              onAmountChange={(v) => update({ registrationEarlyAmount: v })}
+          <Box
+            sx={{
+              mt: 2,
+              px: { xs: 2, md: 3 },
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <PriceRow
+              form={form}
+              name="pricing.priceTwoMonthsBefore"
+              description={PRICING_TIER_COPY.twoMonths.description}
+              deadline={deadlines?.twoMonthsBefore ?? null}
+              accent={COLOR_TOKENS.brand}
             />
-            <DateAmountRow
-              dateLabel="Fecha límite (precio normal)"
-              dateValue={pricing.registrationLateDeadline}
-              onDateChange={(v) => update({ registrationLateDeadline: v })}
-              amountLabel="Monto normal ($)"
-              amountValue={pricing.registrationLateAmount}
-              onAmountChange={(v) => update({ registrationLateAmount: v })}
+            <PriceRow
+              form={form}
+              name="pricing.priceOneMonthBefore"
+              description={PRICING_TIER_COPY.oneMonth.description}
+              deadline={deadlines?.oneMonthBefore ?? null}
+              accent="#f59e0b"
             />
           </Box>
-        );
 
-        const total = hasPricing ? calcTotal(pricing) : null;
-
-        return (
-          <Box data-tour="eventForm.step5.panel" sx={cardSx}>
-            {pricingErrorMessages.length > 0 && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {pricingErrorMessages.map((m, i) => <div key={i}>{m}</div>)}
-              </Alert>
-            )}
-
-            {/* Toggle */}
-            <FormControlLabel
-              control={
-                <Switch checked={hasPricing} onChange={(e) => (e.target.checked ? enablePricing() : disablePricing())} />
-              }
-              label={
-                <Typography fontWeight={600}>
-                  {hasPricing ? 'Este evento tiene costo' : 'Evento gratuito (sin costo)'}
+          {/* Resumen en vivo */}
+          {bothLoaded && (
+            <Box
+              sx={{
+                mt: 2, p: 2, borderRadius: 2,
+                bgcolor: `${COLOR_TOKENS.brand}10`,
+                border: `1px solid ${COLOR_TOKENS.brand}30`,
+                display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap',
+              }}
+            >
+              <Tag size={16} color={COLOR_TOKENS.brand} />
+              {isSingle ? (
+                <Typography variant="body2">
+                  Precio único: <strong>{formatPrice(two)}</strong> sin importar cuándo se pague.
                 </Typography>
-              }
-              sx={{ mb: hasPricing ? 3 : 0 }}
-            />
+              ) : (
+                <Typography variant="body2">
+                  Pagando con tiempo se ahorra <strong>{formatPrice(one - two)}</strong>
+                  {' '}({formatPrice(two)} vs. {formatPrice(one)}).
+                </Typography>
+              )}
+              <Chip
+                size="small"
+                variant="outlined"
+                color="primary"
+                label={isSingle ? 'Precio único' : 'Dos tramos'}
+                sx={{ ml: 'auto' }}
+              />
+            </Box>
+          )}
 
-            {hasPricing && (
-              <>
-                {/* System selector */}
-                <Box mb={3}>
-                  <SubLabel>Sistema de pago</SubLabel>
-                  <ToggleButtonGroup
-                    exclusive
-                    value={system}
-                    onChange={(_, val) => { if (val) switchSystem(val); }}
-                    size="small"
-                  >
-                    <ToggleButton type="button" value="SYSTEM_ONE" sx={{ px: 3 }}>
-                      Sistema 1 — pago único
-                    </ToggleButton>
-                    <ToggleButton type="button" value="SYSTEM_TWO" sx={{ px: 3 }}>
-                      Sistema 2 — dos cuotas
-                    </ToggleButton>
-                  </ToggleButtonGroup>
-                </Box>
-
-                {regSection}
-
-                {/* System 1 */}
-                {system === 'SYSTEM_ONE' && (
-                  <Box sx={subCardSx}>
-                    <SubLabel>Pago del evento</SubLabel>
-                    <DateAmountRow
-                      dateLabel="Fecha límite (precio early)"
-                      dateValue={pricing.eventPaymentDeadline}
-                      onDateChange={(v) => update({ eventPaymentDeadline: v })}
-                      amountLabel="Monto early ($)"
-                      amountValue={pricing.eventPaymentEarlyAmount}
-                      onAmountChange={(v) => update({ eventPaymentEarlyAmount: v })}
-                    />
-                    <DateAmountRow
-                      dateLabel="En la jornada"
-                      dateValue=""
-                      onDateChange={() => {}}
-                      amountLabel="Monto en jornada ($)"
-                      amountValue={pricing.eventPaymentAtEventAmount}
-                      onAmountChange={(v) => update({ eventPaymentAtEventAmount: v })}
-                      dateReadOnly
-                    />
-                  </Box>
-                )}
-
-                {/* System 2 */}
-                {system === 'SYSTEM_TWO' && (
-                  <Box sx={subCardSx}>
-                    <SubLabel>Cuotas del evento</SubLabel>
-                    <DateAmountRow
-                      dateLabel="Fecha límite cuota 1"
-                      dateValue={pricing.installment1Deadline}
-                      onDateChange={(v) => update({ installment1Deadline: v })}
-                      amountLabel="Monto cuota 1 ($)"
-                      amountValue={pricing.installment1Amount}
-                      onAmountChange={(v) => update({ installment1Amount: v })}
-                    />
-                    <DateAmountRow
-                      dateLabel="En la jornada (cuota 2)"
-                      dateValue=""
-                      onDateChange={() => {}}
-                      amountLabel="Monto cuota 2 ($)"
-                      amountValue={pricing.installment2Amount}
-                      onAmountChange={(v) => update({ installment2Amount: v })}
-                      dateReadOnly
-                    />
-                  </Box>
-                )}
-
-                {/* Total */}
-                {total && (total.min > 0 || total.max > 0) && (
-                  <>
-                    <Divider sx={{ my: 2 }} />
-                    <Box
-                      sx={{
-                        p: 2,
-                        borderRadius: 1.5,
-                        bgcolor: `${COLOR_TOKENS.brand}15`,
-                        border: `1px solid ${COLOR_TOKENS.brand}40`,
-                      }}
-                    >
-                      <SubLabel>Total estimado</SubLabel>
-                      {total.min === total.max ? (
-                        <Typography variant="h6" fontWeight={700} color="primary">
-                          {fmt(total.min)}
-                        </Typography>
-                      ) : (
-                        <Typography variant="h6" fontWeight={700} color="primary">
-                          {fmt(total.min)} — {fmt(total.max)}
-                        </Typography>
-                      )}
-                      <Typography variant="caption" color="text.secondary">
-                        {system === 'SYSTEM_ONE'
-                          ? 'Mínimo (todo early) — Máximo (todo en jornada)'
-                          : 'Mínimo (inscripción early) — Máximo (inscripción normal)'}
-                      </Typography>
-                    </Box>
-                  </>
-                )}
-              </>
-            )}
-          </Box>
-        );
-      }}
-    />
+          <Alert severity="info" icon={false} sx={{ mt: 2.5 }}>
+            <AlertTitle sx={{ fontWeight: 700, fontSize: '0.85rem' }}>A tener en cuenta</AlertTitle>
+            <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
+              <Typography component="li" variant="body2" sx={{ my: 0.25 }}>
+                El monto de “dos meses antes” debe ser menor o igual al de “un mes antes”.
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ my: 0.25 }}>
+                Si el precio es único (no cambia según cuándo se pague), escribí el mismo valor en las dos filas.
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ my: 0.25 }}>
+                Ejemplo: dos meses antes <strong>$150.000</strong> · un mes antes <strong>$165.000</strong>.
+              </Typography>
+            </Box>
+          </Alert>
+        </>
+      )}
+    </Box>
   );
 }

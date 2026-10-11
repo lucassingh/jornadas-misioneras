@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import { motion, useInView } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { scrollToSection } from '@/lib/scrollToSection';
+import type { CtaContent } from '@/lib/content';
 
 const BG           = '#f5f5f0';
 const FG_DARK      = '#0d0c0c';
@@ -58,7 +59,12 @@ const LOGO_MASK = [
 const DESKTOP_PATH = 'M 100,0 L 100,100 L 45,100 C 52,72 40,46 47,0 Z';
 const MOBILE_PATH  = 'M 0,0 L 100,0 L 100,65 C 72,70 55,62 50,68 C 45,74 28,65 0,68 Z';
 
-export function CTALanding() {
+interface Props {
+  /** Textos editables desde el dashboard ("Contenido del sitio → Cierre"). */
+  content: CtaContent;
+}
+
+export function CTALanding({ content }: Props) {
   const contentRef = useRef<HTMLDivElement>(null);
   const inView     = useInView(contentRef, { once: true, margin: '80px' });
 
@@ -195,7 +201,7 @@ export function CTALanding() {
                 fontWeight: 400, letterSpacing: '-0.032em', lineHeight: 1.04,
                 color: FG_DARK, whiteSpace: 'nowrap',
               }}>
-                Sumate a
+                {content.titleLine1}
               </Box>
             </motion.div>
           </Box>
@@ -208,7 +214,7 @@ export function CTALanding() {
                 fontWeight: 400, letterSpacing: '-0.032em', lineHeight: 1.04,
                 color: PRIMARY, whiteSpace: 'nowrap',
               }}>
-                la misión.
+                {content.titleLine2}
               </Box>
             </motion.div>
           </Box>
@@ -221,8 +227,7 @@ export function CTALanding() {
               maxWidth: '400px',
               mb: { xs: '52px', md: '72px' },
             }}>
-              Miles de jóvenes ya lo vivieron. Encontrá el evento más cercano
-              y dale un nuevo sentido a tu tiempo.
+              {content.description}
             </Box>
           </motion.div>
 
@@ -257,7 +262,7 @@ export function CTALanding() {
                 letterSpacing: '-0.01em', lineHeight: 1,
                 fontSize: { xs: '18px', sm: '22px', md: '26px' },
               }}>
-                Ver próximos eventos
+                {content.buttonLabel}
               </Box>
               <Box className="arrow-icon">
                 <ArrowRight size={28} strokeWidth={2.2} />

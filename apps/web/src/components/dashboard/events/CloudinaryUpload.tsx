@@ -1,20 +1,28 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useId } from 'react';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
-import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Upload, X, ImageIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, X, ImageIcon, Film, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { COLOR_TOKENS } from '@jornadas/ui';
+
+type ResourceType = 'image' | 'video';
 
 interface Props {
   value?: string | null;
   onChange: (url: string | null) => void;
   label: string;
   disabled?: boolean;
-  folder?: 'events' | 'avatars';
+  folder?: 'events' | 'avatars' | 'site';
+  /** `image` (default) o `video` — cambia el endpoint de Cloudinary, los formatos y el tamaño máximo. */
+  resourceType?: ResourceType;
+  /** Sobrescribe el máximo por defecto (5 MB imagen / 100 MB video). */
+  maxSizeMb?: number;
+  /** Muestra el botón "Quitar" en el archivo cargado (default true). Para campos obligatorios conviene `false`: solo se puede reemplazar. */
+  allowRemove?: boolean;
 }
 
 type State =
@@ -22,8 +30,24 @@ type State =
   | { status: 'uploading'; progress: number; fileName: string }
   | { status: 'error'; message: string };
 
-const MAX_SIZE_MB = 5;
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const CONFIG: Record<ResourceType, { maxSizeMb: number; accepted: string[]; formats: string; wrongFormat: string; noun: string }> = {
+  image: {
+    maxSizeMb: 5,
+    accepted: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    formats: 'PNG, JPG, WebP',
+    wrongFormat: 'Formato no soportado. Usá PNG, JPG, WebP o GIF.',
+    noun: 'imagen',
+  },
+  video: {
+    maxSizeMb: 100,
+    accepted: ['video/mp4', 'video/webm', 'video/quicktime'],
+    formats: 'MP4, WebM o MOV',
+    wrongFormat: 'Formato no soportado. Usá MP4, WebM o MOV.',
+    noun: 'video',
+  },
+};
+
+const RADIUS = '8px';
 
 interface SignatureData {
   signature: string;
@@ -33,19 +57,33 @@ interface SignatureData {
   folder: string;
 }
 
-export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'events' }: Props) {
+export function CloudinaryUpload({
+  value,
+  onChange,
+  label,
+  disabled,
+  folder = 'events',
+  resourceType = 'image',
+  maxSizeMb,
+  allowRemove = true,
+}: Props) {
   const [state, setState] = useState<State>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const inputId = useId();
+
+  const cfg = CONFIG[resourceType];
+  const maxMb = maxSizeMb ?? cfg.maxSizeMb;
+  const isVideo = resourceType === 'video';
 
   const upload = useCallback(async (file: File) => {
-    if (!ACCEPTED.includes(file.type)) {
-      setState({ status: 'error', message: 'Formato no soportado. Usá PNG, JPG, WebP o GIF.' });
+    if (!cfg.accepted.includes(file.type)) {
+      setState({ status: 'error', message: cfg.wrongFormat });
       return;
     }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setState({ status: 'error', message: `El archivo supera los ${MAX_SIZE_MB} MB.` });
+    if (file.size > maxMb * 1024 * 1024) {
+      setState({ status: 'error', message: `El archivo supera los ${maxMb} MB.` });
       return;
     }
 
@@ -57,7 +95,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
       if (!res.ok) throw new Error('Error al obtener firma');
       sig = (await res.json()) as SignatureData;
     } catch {
-      setState({ status: 'error', message: 'No se pudo conectar con el servidor de imágenes.' });
+      setState({ status: 'error', message: 'No se pudo conectar con el servidor de archivos.' });
       return;
     }
 
@@ -70,7 +108,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
 
     const xhr = new XMLHttpRequest();
     xhrRef.current = xhr;
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`);
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`);
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -85,7 +123,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
         onChange(data.secure_url);
         setState({ status: 'idle' });
       } else {
-        setState({ status: 'error', message: 'Error al subir la imagen. Intentá de nuevo.' });
+        setState({ status: 'error', message: `Error al subir ${isVideo ? 'el video' : 'la imagen'}. Intentá de nuevo.` });
       }
     };
 
@@ -95,11 +133,13 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
     };
 
     xhr.send(formData);
-  }, [onChange, folder]);
+  }, [onChange, folder, resourceType, cfg, maxMb, isVideo]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (files?.[0]) upload(files[0]);
   }, [upload]);
+
+  const openPicker = () => inputRef.current?.click();
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
@@ -109,80 +149,51 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
     handleFiles(e.dataTransfer.files);
   };
 
-  const handleRemove = () => {
+  const cancelUpload = () => {
     xhrRef.current?.abort();
     setState({ status: 'idle' });
-    onChange(null);
     if (inputRef.current) inputRef.current.value = '';
   };
 
-  // ── Uploaded — show preview ────────────────────────────────────────────────
-  if (value) {
-    return (
-      <Box>
-        <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={500}>
-          {label}
-        </Typography>
-        <Box
-          sx={{
-            position: 'relative',
-            borderRadius: 2,
-            overflow: 'hidden',
-            border: `2px solid ${COLOR_TOKENS.brand}55`,
-            height: 180,
-            bgcolor: 'background.paper',
-          }}
-        >
-          <Box
-            component="img"
-            src={value}
-            alt={label}
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              p: 1.5,
-            }}
-          >
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <CheckCircle2 size={14} color={COLOR_TOKENS.extra2} />
-              <Typography variant="caption" color="rgba(255,255,255,0.9)">
-                Imagen subida
-              </Typography>
-            </Box>
-            {!disabled && (
-              <IconButton
-                type="button"
-                size="small"
-                onClick={handleRemove}
-                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: '#fff', '&:hover': { bgcolor: 'rgba(220,30,30,0.7)' } }}
-              >
-                <X size={14} />
-              </IconButton>
-            )}
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
+  const handleRemove = () => {
+    cancelUpload();
+    onChange(null);
+  };
 
-  // ── Uploading — progress bar ───────────────────────────────────────────────
+  // El input vive fuera de las vistas: así "Cambiar" (archivo ya cargado) y la
+  // zona de arrastre (sin archivo) usan el mismo selector.
+  const hiddenInput = (
+    <input
+      ref={inputRef}
+      id={inputId}
+      type="file"
+      accept={cfg.accepted.join(',')}
+      style={{ display: 'none' }}
+      disabled={disabled}
+      onChange={(e) => {
+        handleFiles(e.target.files);
+        // Permite volver a elegir el mismo archivo después de un error o cancelación
+        e.target.value = '';
+      }}
+    />
+  );
+
+  const Label = label ? (
+    <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={500}>
+      {label}
+    </Typography>
+  ) : null;
+
+  // ── Uploading — progress bar (también al reemplazar un archivo existente) ──
   if (state.status === 'uploading') {
     return (
       <Box>
-        <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={500}>
-          {label}
-        </Typography>
+        {Label}
+        {hiddenInput}
         <Box
           sx={{
             p: 3,
-            borderRadius: 2,
+            borderRadius: RADIUS,
             border: `2px solid ${COLOR_TOKENS.brand}`,
             bgcolor: `${COLOR_TOKENS.brand}08`,
           }}
@@ -217,7 +228,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
               variant="caption"
               color="text.secondary"
               sx={{ cursor: 'pointer', textDecoration: 'underline', '&:hover': { color: 'error.main' } }}
-              onClick={handleRemove}
+              onClick={cancelUpload}
             >
               Cancelar
             </Typography>
@@ -231,17 +242,14 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
   if (state.status === 'error') {
     return (
       <Box>
-        <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={500}>
-          {label}
-        </Typography>
+        {Label}
+        {hiddenInput}
         <Box
           sx={{
             p: 2.5,
-            borderRadius: 2,
+            borderRadius: RADIUS,
             border: '2px solid',
             borderColor: 'error.main',
-            bgcolor: 'error.main',
-            bgOpacity: 0.05,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -252,15 +260,111 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
           <Typography variant="body2" color="error" textAlign="center">
             {state.message}
           </Typography>
-          <Typography
-            variant="caption"
-            color="primary"
-            sx={{ cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
-            onClick={() => setState({ status: 'idle' })}
-          >
-            Reintentar
-          </Typography>
+          <Box display="flex" gap={1}>
+            <Button type="button" size="small" variant="contained" onClick={openPicker}>
+              Elegir otro archivo
+            </Button>
+            <Button type="button" size="small" variant="text" onClick={() => setState({ status: 'idle' })}>
+              {value ? `Conservar ${cfg.noun} actual` : 'Cancelar'}
+            </Button>
+          </Box>
         </Box>
+      </Box>
+    );
+  }
+
+  // ── Uploaded — preview + Cambiar / Quitar ──────────────────────────────────
+  if (value) {
+    return (
+      <Box>
+        {Label}
+        {hiddenInput}
+        <Box
+          sx={{
+            position: 'relative',
+            borderRadius: RADIUS,
+            overflow: 'hidden',
+            border: `2px solid ${COLOR_TOKENS.brand}55`,
+            height: isVideo ? 260 : 180,
+            bgcolor: isVideo ? '#0d0c0c' : 'background.paper',
+          }}
+        >
+          {isVideo ? (
+            <Box
+              component="video"
+              src={value}
+              muted
+              playsInline
+              controls
+              preload="metadata"
+              sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+            />
+          ) : (
+            <Box
+              component="img"
+              src={value}
+              alt={label}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          )}
+
+          {/* Estado — arriba a la izquierda, no tapa los controles del video */}
+          <Box
+            sx={{
+              position: 'absolute', top: 10, left: 10,
+              display: 'flex', alignItems: 'center', gap: 0.5,
+              px: 1, py: 0.4, borderRadius: '6px',
+              bgcolor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+              pointerEvents: 'none',
+            }}
+          >
+            <CheckCircle2 size={13} color={COLOR_TOKENS.secondary} />
+            <Typography variant="caption" color="rgba(255,255,255,0.92)" lineHeight={1}>
+              {isVideo ? 'Video actual' : 'Imagen actual'}
+            </Typography>
+          </Box>
+
+          {/* Acciones — arriba a la derecha */}
+          {!disabled && (
+            <Box sx={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 0.75 }}>
+              <Button
+                type="button"
+                size="small"
+                variant="contained"
+                startIcon={<RefreshCw size={13} />}
+                onClick={openPicker}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.94)', color: '#0d0c0c',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
+                  '&:hover': { bgcolor: '#fff' },
+                }}
+              >
+                {isVideo ? 'Cambiar video' : 'Cambiar imagen'}
+              </Button>
+              {allowRemove && (
+                <Button
+                  type="button"
+                  size="small"
+                  variant="contained"
+                  startIcon={<X size={13} />}
+                  onClick={handleRemove}
+                  sx={{
+                    bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)',
+                    boxShadow: 'none',
+                    '&:hover': { bgcolor: 'rgba(220,30,30,0.8)' },
+                  }}
+                >
+                  Quitar
+                </Button>
+              )}
+            </Box>
+          )}
+        </Box>
+        <Typography variant="caption" color="text.secondary" display="block" mt={0.75}>
+          {isVideo
+            ? 'Para reemplazarlo, tocá “Cambiar video” y elegí el archivo nuevo.'
+            : 'Para reemplazarla, tocá “Cambiar imagen” y elegí el archivo nuevo.'}
+        </Typography>
       </Box>
     );
   }
@@ -268,11 +372,11 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
   // ── Idle — dropzone ────────────────────────────────────────────────────────
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={500}>
-        {label}
-      </Typography>
+      {Label}
+      {hiddenInput}
       <Box
         component="label"
+        htmlFor={inputId}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -283,7 +387,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
           justifyContent: 'center',
           gap: 1,
           height: 180,
-          borderRadius: 2,
+          borderRadius: RADIUS,
           border: '2px dashed',
           borderColor: isDragging ? COLOR_TOKENS.brand : 'divider',
           bgcolor: isDragging ? `${COLOR_TOKENS.brand}08` : 'background.paper',
@@ -295,14 +399,6 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
           },
         }}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPTED.join(',')}
-          style={{ display: 'none' }}
-          disabled={disabled}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
         <Box
           sx={{
             width: 52,
@@ -316,7 +412,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
           }}
         >
           {isDragging ? (
-            <ImageIcon size={24} color={COLOR_TOKENS.brand} />
+            isVideo ? <Film size={24} color={COLOR_TOKENS.brand} /> : <ImageIcon size={24} color={COLOR_TOKENS.brand} />
           ) : (
             <Upload size={24} style={{ opacity: 0.5 }} />
           )}
@@ -326,7 +422,7 @@ export function CloudinaryUpload({ value, onChange, label, disabled, folder = 'e
             {isDragging ? 'Soltá para subir' : 'Arrastrá o clickeá para subir'}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            PNG, JPG, WebP · Máx. {MAX_SIZE_MB} MB
+            {cfg.formats} · Máx. {maxMb} MB
           </Typography>
         </Box>
       </Box>

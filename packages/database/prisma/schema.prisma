@@ -27,14 +27,6 @@ enum ArgentinaRegion {
   PATAGONIA     // Patagonia: Neuquén, Río Negro, Chubut, Santa Cruz, Tierra del Fuego
 }
 
-// Controls the shape of EventPricing fields.
-// SYSTEM_ONE: registration (early/late) + single event payment (before deadline or at event)
-// SYSTEM_TWO: registration (early/late) + event payment split in 2 installments
-enum PaymentSystemType {
-  SYSTEM_ONE
-  SYSTEM_TWO
-}
-
 // ── Users ──────────────────────────────────────────────────────────────────────
 
 model User {
@@ -141,44 +133,35 @@ model Testimonial {
 }
 
 // ── Pricing ────────────────────────────────────────────────────────────────────
+// Una sola modalidad de pago (definida por el equipo, 2026-10): el evento tiene
+// dos montos según cuándo se abone. Las fechas límite NO se guardan — se derivan
+// del inicio del evento (startDate - 2 meses / startDate - 1 mes), ver
+// `apps/web/src/lib/pricing.ts`. Si el precio es único, ambos montos son iguales.
 
 model EventPricing {
   id      Int   @id @default(autoincrement())
   eventId Int   @unique
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  paymentSystem PaymentSystemType
+  // Monto si se paga hasta 2 meses antes del inicio del evento
+  priceTwoMonthsBefore Decimal @db.Decimal(10, 2)
+  // Monto si se paga hasta 1 mes antes del inicio. Siempre >= priceTwoMonthsBefore.
+  priceOneMonthBefore  Decimal @db.Decimal(10, 2)
 
-  // ── Registration — identical in both systems ──────────────────────────────
-  // If attendee pays before registrationEarlyDeadline → registrationEarlyAmount
-  // If attendee pays before registrationLateDeadline (but after early) → registrationLateAmount
-  registrationEarlyDeadline DateTime @db.Date
-  registrationEarlyAmount   Decimal  @db.Decimal(10, 2)
-  registrationLateDeadline  DateTime @db.Date
-  registrationLateAmount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
-  // ── SYSTEM_ONE: single event payment with two pricing tiers ───────────────
-  // Tier A: pay before eventPaymentDeadline → eventPaymentEarlyAmount
-  // Tier B: pay at the event (no deadline)  → eventPaymentAtEventAmount
-  // Attendee pays registration + ONE of the two tiers (not both)
-  eventPaymentDeadline      DateTime? @db.Date
-  eventPaymentEarlyAmount   Decimal?  @db.Decimal(10, 2)
-  eventPaymentAtEventAmount Decimal?  @db.Decimal(10, 2)
+// ── Site content (CMS) ─────────────────────────────────────────────────────────
+// Textos, fotos y video de la landing editables desde el dashboard (solo ADMIN).
+// Una fila por sección (`key` = hero | video | about | stats | ...). `data` es un
+// JSON validado con el schema Zod de esa sección (apps/web/src/lib/content/).
+// Si no existe la fila de una sección, la landing usa los defaults del código.
 
-  // ── SYSTEM_TWO: event payment split in two installments ───────────────────
-  // Installment 1: pay before installment1Deadline → installment1Amount
-  // Installment 2: pay at the event (no deadline)  → installment2Amount
-  // Attendee pays registration + BOTH installments (sequential, not either/or)
-  installment1Deadline DateTime? @db.Date
-  installment1Amount   Decimal?  @db.Decimal(10, 2)
-  installment2Amount   Decimal?  @db.Decimal(10, 2)
-
-  // Grand total, calculated on the frontend as the form is filled and
-  // persisted on save. Used for public display on the landing page.
-  // System 1 best case: registrationEarlyAmount + eventPaymentEarlyAmount
-  // System 2 best case: registrationEarlyAmount + installment1Amount + installment2Amount
-  totalAmount Decimal? @db.Decimal(10, 2)
-
+model SiteContent {
+  key       String   @id
+  data      Json
+  updatedBy String? // clerkId del admin que guardó por última vez
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Box from '@mui/material/Box';
+import type { ContactContent } from '@/lib/content';
 
 const PRIMARY = '#2235fd';
 const ACCENT  = '#84f649';
@@ -32,24 +33,29 @@ function MailIcon() {
   );
 }
 
-const ITEMS = [
-  {
-    id:       'ig',
-    label:    '@jornadasmisioneras',
-    href:     'https://www.instagram.com/jornadasmisionerascc',
-    icon:     <IgIcon />,
-    external: true,
-  },
-  {
-    id:       'mail',
-    label:    'Escribinos',
-    href:     'mailto:jornadasmisionerasnacionales@gmail.com',
-    icon:     <MailIcon />,
-    external: false,
-  },
-] as const;
+interface Props {
+  /** Email e Instagram, editables desde el dashboard ("Contenido del sitio → Contacto y redes"). */
+  contact: ContactContent;
+}
 
-export function SocialRail() {
+export function SocialRail({ contact }: Props) {
+  const ITEMS = [
+    {
+      id:       'ig',
+      label:    contact.instagramHandle,
+      href:     contact.instagramUrl,
+      icon:     <IgIcon />,
+      external: true,
+    },
+    {
+      id:       'mail',
+      label:    'Escribinos',
+      href:     `mailto:${contact.email}`,
+      icon:     <MailIcon />,
+      external: false,
+    },
+  ] as const;
+
   const pathname = usePathname();
   const isDetail = /^\/events\/\d+$/.test(pathname);
 

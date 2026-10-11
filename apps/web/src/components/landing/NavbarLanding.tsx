@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Image from 'next/image';
 import Link from 'next/link';
 import { scrollToSection } from '@/lib/scrollToSection';
+import type { ContactContent } from '@/lib/content';
 
 const LINKS = [
   { label: 'Inicio',   sectionId: ''         },
@@ -23,7 +24,12 @@ const EASE = [0.76, 0, 0.24, 1] as const;
 const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_BODY = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 
-export function NavbarLanding() {
+interface Props {
+  /** Email e Instagram del menú, editables desde el dashboard ("Contenido del sitio → Contacto y redes"). */
+  contact: ContactContent;
+}
+
+export function NavbarLanding({ contact }: Props) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -268,7 +274,7 @@ export function NavbarLanding() {
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <Box
                       component="a"
-                      href="mailto:jornadasmisionerasnacionales@gmail.com"
+                      href={`mailto:${contact.email}`}
                       sx={{
                         color: MENU_FG,
                         fontFamily: FONT_BODY,
@@ -280,11 +286,11 @@ export function NavbarLanding() {
                         '&:hover': { opacity: 1 },
                       }}
                     >
-                      jornadasmisionerasnacionales@gmail.com
+                      {contact.email}
                     </Box>
                     <Box
                       component="a"
-                      href="https://www.instagram.com/jornadasmisionerascc"
+                      href={contact.instagramUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       sx={{
@@ -298,7 +304,7 @@ export function NavbarLanding() {
                         '&:hover': { opacity: 1 },
                       }}
                     >
-                      @jornadasmisionerascc
+                      {contact.instagramHandle}
                     </Box>
                   </Box>
                 </motion.div>

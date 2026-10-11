@@ -7,6 +7,7 @@ import { createHash } from 'crypto';
 const ALLOWED_FOLDERS = {
   events: 'jornadas-misioneras/events',
   avatars: 'jornadas-misioneras/avatars',
+  site: 'jornadas-misioneras/site', // fotos/video de la landing (CMS)
 } as const;
 
 export async function GET(req: NextRequest) {

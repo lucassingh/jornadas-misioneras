@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Image from 'next/image';
+import { SECTIONS, type HeroContent } from '@/lib/content';
+import { isOptimizableImage } from '@/lib/imageSrc';
 
 const ACCENT = '#84f649';
 const FG = '#f5f5f0';
@@ -13,11 +15,6 @@ const EASE = [0.76, 0, 0.24, 1] as const;
 const FONT_DISPLAY = 'var(--font-archivo-black), "Archivo Black", sans-serif';
 const FONT_BODY = 'var(--font-roboto-flex), "Roboto Flex", Roboto, sans-serif';
 
-const HEADLINE = [
-  { text: 'El impacto', color: FG,      delay: 0.5  },
-  { text: 'de sumarte', color: PRIMARY, delay: 0.65 },
-];
-
 // Más chico que antes — deja subir la imagen y mostrar más porción al cargar.
 const HEADLINE_SIZE = { xs: '11.5vw', sm: '10vw', md: '9vw', lg: '7.8vw', xl: '7vw' };
 
@@ -25,7 +22,6 @@ const HEADLINE_SIZE = { xs: '11.5vw', sm: '10vw', md: '9vw', lg: '7.8vw', xl: '7
 // la foto queda "enmarcada" con aire igual a los costados y abajo.
 const SECTION_PX = { xs: '20px', md: '60px', xl: '80px' };
 
-const SLIDES = ['/hero/img-1.webp', '/hero/img-2.webp', '/hero/img-3.webp'];
 const SLIDE_INTERVAL_MS = 6000;
 const SLIDE_FADE_S = 3;
 
@@ -37,16 +33,35 @@ const SLIDE_FADE_S = 3;
 // this instead of firing blind at t=0.
 const LOADER_CLEAR_MS = 2250;
 
-export function HeroLanding() {
+const DEFAULT_SLIDES = [SECTIONS.hero.defaults.slide1, SECTIONS.hero.defaults.slide2, SECTIONS.hero.defaults.slide3];
+
+interface Props {
+  /** Textos y fotos editables desde el dashboard ("Contenido del sitio → Portada"). */
+  content: HeroContent;
+}
+
+export function HeroLanding({ content }: Props) {
   const [active, setActive] = useState(0);
   const [ready, setReady] = useState(false);
 
+  // Fotos vacías se saltean; si el admin dejó las tres vacías, caemos a las originales.
+  const slides = useMemo(() => {
+    const list = [content.slide1, content.slide2, content.slide3].filter((s) => s.trim().length > 0);
+    return list.length > 0 ? list : DEFAULT_SLIDES;
+  }, [content.slide1, content.slide2, content.slide3]);
+
+  const headline = [
+    { text: content.titleLine1, color: FG,      delay: 0.5  },
+    { text: content.titleLine2, color: PRIMARY, delay: 0.65 },
+  ];
+
   useEffect(() => {
+    if (slides.length <= 1) return;
     const id = setInterval(() => {
-      setActive((i) => (i + 1) % SLIDES.length);
+      setActive((i) => (i + 1) % slides.length);
     }, SLIDE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [slides.length]);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), LOADER_CLEAR_MS);
@@ -89,15 +104,15 @@ export function HeroLanding() {
               }}
             >
               <Box sx={{ width: '28px', height: '1.5px', backgroundColor: ACCENT, flexShrink: 0 }} />
-              Jornadas Misioneras
+              {content.eyebrow}
             </Box>
           </motion.div>
         </Box>
 
         {/* Headline — línea por línea, mask reveal + blur-to-foco y un leve
             overshoot de escala; la entrada "grande" que pide un hero premium */}
-        {HEADLINE.map(({ text, color, delay }) => (
-          <Box key={text} sx={{ overflow: 'hidden', py: '0.06em' }}>
+        {headline.map(({ text, color, delay }, i) => (
+          <Box key={i} sx={{ overflow: 'hidden', py: '0.06em' }}>
             <motion.div
               initial={{ y: '105%', opacity: 0, scale: 1.06, filter: 'blur(14px)' }}
               animate={
@@ -149,10 +164,11 @@ export function HeroLanding() {
                 maxWidth: '400px',
                 lineHeight: 1.65,
                 letterSpacing: '0.01em',
+                // Respeta los Enter que el admin escriba en el dashboard
+                whiteSpace: 'pre-line',
               }}
             >
-              Viví una experiencia que transforma tu fe
-              <br />y tu mirada sobre el servicio.
+              {content.subtitle}
             </Box>
 
             <Box
@@ -187,7 +203,7 @@ export function HeroLanding() {
                 '&:hover': { backgroundColor: '#a3ff6e', gap: '16px' },
               }}
             >
-              Inscribite
+              {content.ctaLabel}
               <Box component="span" sx={{ fontSize: '16px' }}>→</Box>
             </Box>
           </Box>
@@ -199,7 +215,7 @@ export function HeroLanding() {
           ya asoma en el viewport inicial por el diseño "cortado", un gate
           por scroll (whileInView) no hacía falta — el problema real era el
           loader, no la posición. Adentro, un slider automático a fade entre
-          3 fotos, fijo en el lugar — no se desliza, una se apaga mientras
+          las fotos, fijo en el lugar — no se desliza, una se apaga mientras
           la otra aparece. ── */}
       <motion.div
         initial={{ y: 110, opacity: 0 }}
@@ -215,9 +231,9 @@ export function HeroLanding() {
             overflow: 'hidden',
           }}
         >
-          {SLIDES.map((src, i) => (
+          {slides.map((src, i) => (
             <motion.div
-              key={src}
+              key={`${i}-${src}`}
               animate={{ opacity: active === i ? 1 : 0 }}
               transition={{ duration: SLIDE_FADE_S, ease: 'easeInOut' }}
               style={{ position: 'absolute', inset: 0 }}
@@ -228,6 +244,7 @@ export function HeroLanding() {
                 fill
                 priority={i === 0}
                 sizes="100vw"
+                unoptimized={!isOptimizableImage(src)}
                 style={{ objectFit: 'cover', filter: 'brightness(1.08) contrast(1.06) saturate(1.15)' }}
               />
             </motion.div>

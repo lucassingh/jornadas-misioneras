@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import gsap from 'gsap';
 import type { PublicTestimonial } from '@/lib/queries/public-testimonials';
+import type { SectionHeaderContent } from '@/lib/content';
 
 const BG        = '#84f649'; // SECONDARY — verde
 const FG_LIGHT  = '#f5f5f0';
@@ -21,7 +22,7 @@ const CARD_W   = '380px';
 const CARD_H   = '210px';
 const CARD_MX  = '10px';
 
-function EmptyState() {
+function EmptyState({ text }: { text: string }) {
   return (
     <Box
       sx={{
@@ -33,12 +34,16 @@ function EmptyState() {
         letterSpacing: '-0.02em',
       }}
     >
-      Todavía no hay testimonios para mostrar.
+      {text}
     </Box>
   );
 }
 
-interface Props { testimonials: PublicTestimonial[]; }
+interface Props {
+  testimonials: PublicTestimonial[];
+  /** Encabezado editable desde el dashboard ("Contenido del sitio → Testimonios"). */
+  content: SectionHeaderContent;
+}
 
 function TestimonialCard({ t }: { t: PublicTestimonial }) {
   const initials = `${t.firstName[0]}${t.lastName[0]}`.toUpperCase();
@@ -127,7 +132,7 @@ function TestimonialCard({ t }: { t: PublicTestimonial }) {
   );
 }
 
-export function TestimonialsLanding({ testimonials }: Props) {
+export function TestimonialsLanding({ testimonials, content }: Props) {
   const track1Ref = useRef<HTMLDivElement>(null);
   const track2Ref = useRef<HTMLDivElement>(null);
   const tween1Ref = useRef<gsap.core.Tween | null>(null);
@@ -190,7 +195,7 @@ export function TestimonialsLanding({ testimonials }: Props) {
           color: PRIMARY, mb: '20px',
         }}>
           <Box sx={{ width: '20px', height: '1.5px', backgroundColor: PRIMARY, flexShrink: 0 }} />
-          Testimonios
+          {content.eyebrow}
         </Box>
 
         <Box sx={{
@@ -199,7 +204,7 @@ export function TestimonialsLanding({ testimonials }: Props) {
           fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.08,
           color: FG_DARK,
         }}>
-          Lo que dicen
+          {content.titleLine1}
         </Box>
         <Box sx={{
           fontFamily: FONT_DISPLAY,
@@ -207,20 +212,20 @@ export function TestimonialsLanding({ testimonials }: Props) {
           fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.08,
           color: PRIMARY, mb: '28px',
         }}>
-          los que vivieron.
+          {content.titleLine2}
         </Box>
         <Box sx={{
           fontFamily: FONT_BODY, fontSize: { xs: '15px', md: '17px' },
           color: `${FG_DARK}80`, lineHeight: 1.68, maxWidth: '520px',
         }}>
-          Experiencias reales de jóvenes que eligieron servir.
+          {content.description}
         </Box>
       </Box>
 
       {/* Marquee rows — 3 copies each for seamless loop on any screen width */}
       {testimonials.length === 0 ? (
         <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-          <EmptyState />
+          <EmptyState text={content.emptyText} />
         </Box>
       ) : (
         <Box sx={{

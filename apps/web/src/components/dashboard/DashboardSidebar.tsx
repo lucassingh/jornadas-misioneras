@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
+import Collapse from '@mui/material/Collapse';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
@@ -15,7 +16,9 @@ import {
   Building2,
   MapPin,
   MessageSquareQuote,
+  LayoutTemplate,
   ChevronLeft,
+  ChevronDown,
   LogOut,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -24,14 +27,22 @@ import Image from 'next/image';
 import { SignOutButton } from '@clerk/nextjs';
 import { useTheme } from '@mui/material/styles';
 import { COLOR_TOKENS } from '@jornadas/ui';
+import { SECTIONS, SECTION_ORDER } from '@/lib/content';
 
 const HEADER_HEIGHT = 64;
+
+interface NavChild {
+  label: string;
+  href: string;
+}
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  /** Sub-ítems que se despliegan debajo cuando el ítem está activo (solo con el aside abierto). */
+  children?: NavChild[];
 }
 
 const navItems: NavItem[] = [
@@ -41,6 +52,17 @@ const navItems: NavItem[] = [
   { label: 'Países', href: '/dashboard/countries', icon: <Globe size={20} />, adminOnly: true },
   { label: 'Provincias', href: '/dashboard/provinces', icon: <Building2 size={20} />, adminOnly: true },
   { label: 'Localidades', href: '/dashboard/locations', icon: <MapPin size={20} />, adminOnly: true },
+  {
+    label: 'Contenido del sitio',
+    href: '/dashboard/content',
+    icon: <LayoutTemplate size={20} />,
+    adminOnly: true,
+    // Una entrada por sección de la landing, en el orden en que aparecen al scrollear.
+    children: SECTION_ORDER.map((key) => ({
+      label: SECTIONS[key].navLabel,
+      href: `/dashboard/content/${key}`,
+    })),
+  },
 ];
 
 interface Props {
@@ -165,9 +187,14 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
             item.href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname.startsWith(item.href);
+          const showChildren = !!item.children && isOpen && isActive;
 
           return (
-            <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem
+              key={item.href}
+              disablePadding
+              sx={{ mb: 0.5, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+            >
               <Tooltip title={!isOpen ? item.label : ''} placement="right">
                 <ListItemButton
                   component={Link}
@@ -206,13 +233,76 @@ export function DashboardSidebar({ width, isOpen, isAdmin, onToggle }: Props) {
                     <Typography
                       variant="body2"
                       fontWeight={isActive ? 600 : 400}
-                      sx={{ whiteSpace: 'nowrap', overflow: 'hidden' }}
+                      sx={{ whiteSpace: 'nowrap', overflow: 'hidden', flex: 1 }}
                     >
                       {item.label}
                     </Typography>
                   )}
+                  {isOpen && item.children && (
+                    <ChevronDown
+                      size={14}
+                      style={{
+                        opacity: 0.6,
+                        flexShrink: 0,
+                        transform: showChildren ? 'rotate(0deg)' : 'rotate(-90deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                    />
+                  )}
                 </ListItemButton>
               </Tooltip>
+
+              {/* Sub-ítems (secciones de la landing) */}
+              {item.children && (
+                <Collapse in={showChildren} unmountOnExit>
+                  <List disablePadding sx={{ pl: 2.25, pt: 0.5, pb: 0.25 }}>
+                    {item.children.map((child, idx) => {
+                      const childActive = pathname === child.href;
+                      return (
+                        <ListItemButton
+                          key={child.href}
+                          component={Link}
+                          href={child.href}
+                          sx={{
+                            borderRadius: 1.5,
+                            minHeight: 30,
+                            py: 0.25,
+                            pl: 1.5,
+                            pr: 1,
+                            gap: 1.25,
+                            mb: 0.25,
+                            bgcolor: childActive ? activeBg : 'transparent',
+                            color: childActive ? activeColor : inactiveText,
+                            '&:hover': { bgcolor: hoverBg, color: iconHover },
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              width: 18,
+                              flexShrink: 0,
+                              fontWeight: 700,
+                              fontSize: '0.6rem',
+                              letterSpacing: '0.08em',
+                              opacity: childActive ? 1 : 0.55,
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {String(idx + 1).padStart(2, '0')}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            fontWeight={childActive ? 700 : 500}
+                            sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          >
+                            {child.label}
+                          </Typography>
+                        </ListItemButton>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              )}
             </ListItem>
           );
         })}

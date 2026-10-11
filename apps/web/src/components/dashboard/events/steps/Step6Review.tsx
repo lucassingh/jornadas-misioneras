@@ -3,13 +3,13 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Pencil } from 'lucide-react';
 import { COLOR_TOKENS } from '@jornadas/ui';
 import type { CreateEventInput } from '@/lib/validations/event';
+import { getPricingTiers, isSinglePrice, PRICING_TIER_COPY } from '@/lib/pricing';
 import type { Country, Province, Location } from '../EventForm';
 
 interface Props {
@@ -88,6 +88,54 @@ function RichRow({ label, value }: { label: string; value?: string | null }) {
         }}
       />
     </Box>
+  );
+}
+
+const fmtDeadline = (d: Date) => format(d, "d 'de' MMMM 'de' yyyy", { locale: es });
+
+function PricingSummary({
+  startDate,
+  pricing,
+}: {
+  startDate?: string;
+  pricing: { priceTwoMonthsBefore?: number; priceOneMonthBefore?: number };
+}) {
+  const amounts = {
+    priceTwoMonthsBefore: Number(pricing.priceTwoMonthsBefore ?? 0),
+    priceOneMonthBefore: Number(pricing.priceOneMonthBefore ?? 0),
+  };
+
+  if (isSinglePrice(amounts)) {
+    return (
+      <Box>
+        <Chip label="Precio único" color="primary" variant="outlined" size="small" sx={{ mb: 1.5 }} />
+        <Typography variant="h6" fontWeight={700} color="primary" lineHeight={1}>
+          {fmtCurrency(amounts.priceTwoMonthsBefore)}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Mismo valor sin importar cuándo se pague.
+        </Typography>
+      </Box>
+    );
+  }
+
+  const tiers = (startDate && getPricingTiers(startDate, amounts)) || [
+    { key: 'twoMonths', ...PRICING_TIER_COPY.twoMonths, amount: amounts.priceTwoMonthsBefore, deadline: null },
+    { key: 'oneMonth',  ...PRICING_TIER_COPY.oneMonth,  amount: amounts.priceOneMonthBefore,  deadline: null },
+  ];
+
+  return (
+    <Grid container spacing={1}>
+      {tiers.map((t) => (
+        <Grid item xs={12} sm={6} key={t.key}>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {t.description}
+            {t.deadline ? ` (hasta el ${fmtDeadline(t.deadline)})` : ''}
+          </Typography>
+          <Typography variant="body2" fontWeight={600}>{fmtCurrency(t.amount)}</Typography>
+        </Grid>
+      ))}
+    </Grid>
   );
 }
 
@@ -206,72 +254,13 @@ export function Step6Review({ form, countries, provinces, locations, onGoToStep 
         )}
       </Box>
 
-      {/* Pagos — step 5 */}
+      {/* Precio — step 5 */}
       <Box sx={cardSx}>
-        <SectionHeader label="Pagos y aranceles" step={5} onEdit={onGoToStep} />
+        <SectionHeader label="Precio del evento" step={5} onEdit={onGoToStep} />
         {!pricing ? (
           <Chip label="Evento gratuito" color="success" variant="outlined" size="small" />
         ) : (
-          <>
-            <Chip
-              label={pricing.paymentSystem === 'SYSTEM_ONE' ? 'Sistema 1 — pago único' : 'Sistema 2 — dos cuotas'}
-              color="primary" variant="outlined" size="small" sx={{ mb: 2 }}
-            />
-
-            <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={700}>INSCRIPCIÓN</Typography>
-            <Grid container spacing={1} mb={2}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary" display="block">Early (hasta {fmtDate(pricing.registrationEarlyDeadline)})</Typography>
-                <Typography variant="body2" fontWeight={600}>{fmtCurrency(pricing.registrationEarlyAmount)}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary" display="block">Normal (hasta {fmtDate(pricing.registrationLateDeadline)})</Typography>
-                <Typography variant="body2" fontWeight={600}>{fmtCurrency(pricing.registrationLateAmount)}</Typography>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 1.5 }} />
-
-            {pricing.paymentSystem === 'SYSTEM_ONE' && (
-              <>
-                <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={700}>PAGO DEL EVENTO</Typography>
-                <Grid container spacing={1} mb={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">Early (hasta {fmtDate(pricing.eventPaymentDeadline)})</Typography>
-                    <Typography variant="body2" fontWeight={600}>{fmtCurrency(pricing.eventPaymentEarlyAmount)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">En la jornada</Typography>
-                    <Typography variant="body2" fontWeight={600}>{fmtCurrency(pricing.eventPaymentAtEventAmount)}</Typography>
-                  </Grid>
-                </Grid>
-              </>
-            )}
-
-            {pricing.paymentSystem === 'SYSTEM_TWO' && (
-              <>
-                <Typography variant="caption" color="text.secondary" display="block" mb={1} fontWeight={700}>CUOTAS DEL EVENTO</Typography>
-                <Grid container spacing={1} mb={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">Cuota 1 (hasta {fmtDate(pricing.installment1Deadline)})</Typography>
-                    <Typography variant="body2" fontWeight={600}>{fmtCurrency(pricing.installment1Amount)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">Cuota 2 (en la jornada)</Typography>
-                    <Typography variant="body2" fontWeight={600}>{fmtCurrency(pricing.installment2Amount)}</Typography>
-                  </Grid>
-                </Grid>
-              </>
-            )}
-
-            <Divider sx={{ my: 1.5 }} />
-            <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: `${COLOR_TOKENS.brand}15` }}>
-              <Typography variant="caption" color="text.secondary" display="block">Total estimado (mínimo)</Typography>
-              <Typography variant="h6" color="primary" fontWeight={700}>
-                {fmtCurrency(pricing.totalAmount ?? 0)}
-              </Typography>
-            </Box>
-          </>
+          <PricingSummary startDate={values.startDate} pricing={pricing} />
         )}
       </Box>
     </Box>

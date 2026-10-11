@@ -9,53 +9,19 @@ const positiveAmount = z.coerce
   .number({ invalid_type_error: 'Ingresá un monto válido' })
   .positive('El monto debe ser mayor a 0');
 
-// ── System 1 — single event payment with two pricing tiers ────────────────────
+// ── Pricing ───────────────────────────────────────────────────────────────────
+// Una sola modalidad: dos montos según cuándo se paga (ver `lib/pricing.ts`).
+// Las fechas límite se derivan de startDate, por eso no forman parte del input.
 
-const systemOnePricingSchema = z
+export const pricingSchema = z
   .object({
-    paymentSystem: z.literal('SYSTEM_ONE'),
-    registrationEarlyDeadline: dateField,
-    registrationEarlyAmount: positiveAmount,
-    registrationLateDeadline: dateField,
-    registrationLateAmount: positiveAmount,
-    eventPaymentDeadline: dateField,
-    eventPaymentEarlyAmount: positiveAmount,
-    eventPaymentAtEventAmount: positiveAmount,
-    totalAmount: z.coerce.number().positive().optional(),
+    priceTwoMonthsBefore: positiveAmount,
+    priceOneMonthBefore: positiveAmount,
   })
-  .refine(
-    (d) => new Date(d.registrationEarlyDeadline) < new Date(d.registrationLateDeadline),
-    { message: 'La fecha early debe ser anterior a la late', path: ['registrationLateDeadline'] },
-  )
-  .refine((d) => d.registrationEarlyAmount <= d.registrationLateAmount, {
-    message: 'El monto early debe ser menor o igual al late',
-    path: ['registrationLateAmount'],
+  .refine((d) => d.priceTwoMonthsBefore <= d.priceOneMonthBefore, {
+    message: 'El monto de "dos meses antes" debe ser menor o igual al de "un mes antes"',
+    path: ['priceOneMonthBefore'],
   });
-
-// ── System 2 — installment plan ───────────────────────────────────────────────
-
-const systemTwoPricingSchema = z
-  .object({
-    paymentSystem: z.literal('SYSTEM_TWO'),
-    registrationEarlyDeadline: dateField,
-    registrationEarlyAmount: positiveAmount,
-    registrationLateDeadline: dateField,
-    registrationLateAmount: positiveAmount,
-    installment1Deadline: dateField,
-    installment1Amount: positiveAmount,
-    installment2Amount: positiveAmount,
-    totalAmount: z.coerce.number().positive().optional(),
-  })
-  .refine(
-    (d) => new Date(d.registrationEarlyDeadline) < new Date(d.registrationLateDeadline),
-    { message: 'La fecha early debe ser anterior a la late', path: ['registrationLateDeadline'] },
-  )
-  .refine((d) => d.registrationEarlyAmount <= d.registrationLateAmount, {
-    message: 'El monto early debe ser menor o igual al late',
-    path: ['registrationLateAmount'],
-  });
-
-export const pricingSchema = z.union([systemOnePricingSchema, systemTwoPricingSchema]);
 
 // ── Event ─────────────────────────────────────────────────────────────────────
 
@@ -83,49 +49,17 @@ const baseEventSchema = z.object({
     .regex(/^\+\d{7,15}$/, 'Formato WhatsApp: +5491112345678 (sin espacios)')
     .optional()
     .nullable(),
+  // null / undefined = evento gratuito
   pricing: pricingSchema.optional().nullable(),
 });
 
-export const createEventSchema = baseEventSchema
-  .refine((d) => new Date(d.endDate) >= new Date(d.startDate), {
+export const createEventSchema = baseEventSchema.refine(
+  (d) => new Date(d.endDate) >= new Date(d.startDate),
+  {
     message: 'La fecha de inicio no puede ser mayor a la de fin',
     path: ['endDate'],
-  })
-  .superRefine((d, ctx) => {
-    if (!d.pricing) return;
-    const start = new Date(d.startDate);
-    const { pricing } = d;
-
-    if (new Date(pricing.registrationLateDeadline) > start) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'El cierre de inscripción debe ser antes del inicio del evento',
-        path: ['pricing', 'registrationLateDeadline'],
-      });
-    }
-
-    if (
-      pricing.paymentSystem === 'SYSTEM_ONE' &&
-      new Date(pricing.eventPaymentDeadline) >= start
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'La fecha de pago anticipado debe ser antes del inicio del evento',
-        path: ['pricing', 'eventPaymentDeadline'],
-      });
-    }
-
-    if (
-      pricing.paymentSystem === 'SYSTEM_TWO' &&
-      new Date(pricing.installment1Deadline) >= start
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'La fecha de cuota 1 debe ser antes del inicio del evento',
-        path: ['pricing', 'installment1Deadline'],
-      });
-    }
-  });
+  },
+);
 
 export const updateEventSchema = baseEventSchema.partial();
 
@@ -134,39 +68,11 @@ export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export type PricingInput = z.infer<typeof pricingSchema>;
 
 // ── Pricing mapper ────────────────────────────────────────────────────────────
-// Converts validated pricing input to a DB-ready flat object.
-// Explicitly nulls out the opposite system's fields on update to prevent stale data.
+// Convierte el input validado al objeto plano que espera Prisma.
 
 export function mapPricingToDb(pricing: PricingInput) {
-  const base = {
-    registrationEarlyDeadline: new Date(pricing.registrationEarlyDeadline),
-    registrationEarlyAmount: pricing.registrationEarlyAmount,
-    registrationLateDeadline: new Date(pricing.registrationLateDeadline),
-    registrationLateAmount: pricing.registrationLateAmount,
-    totalAmount: pricing.totalAmount ?? null,
-  };
-
-  if (pricing.paymentSystem === 'SYSTEM_ONE') {
-    return {
-      paymentSystem: 'SYSTEM_ONE' as const,
-      ...base,
-      eventPaymentDeadline: new Date(pricing.eventPaymentDeadline),
-      eventPaymentEarlyAmount: pricing.eventPaymentEarlyAmount,
-      eventPaymentAtEventAmount: pricing.eventPaymentAtEventAmount,
-      installment1Deadline: null,
-      installment1Amount: null,
-      installment2Amount: null,
-    };
-  }
-
   return {
-    paymentSystem: 'SYSTEM_TWO' as const,
-    ...base,
-    installment1Deadline: new Date(pricing.installment1Deadline),
-    installment1Amount: pricing.installment1Amount,
-    installment2Amount: pricing.installment2Amount,
-    eventPaymentDeadline: null,
-    eventPaymentEarlyAmount: null,
-    eventPaymentAtEventAmount: null,
+    priceTwoMonthsBefore: pricing.priceTwoMonthsBefore,
+    priceOneMonthBefore: pricing.priceOneMonthBefore,
   };
 }

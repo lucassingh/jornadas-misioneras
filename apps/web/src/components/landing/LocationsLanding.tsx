@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import Box from '@mui/material/Box';
 import type { PublicLocation } from '@/lib/queries/public-locations';
+import type { SectionHeaderContent } from '@/lib/content';
 
 const BG      = '#f5f5f0';
 const BG_DARK = '#0d0c0c';
@@ -490,7 +491,7 @@ function LocationRow({
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function EmptyState() {
+function EmptyState({ text }: { text: string }) {
   return (
     <Box
       sx={{
@@ -501,7 +502,7 @@ function EmptyState() {
         letterSpacing: '-0.02em',
       }}
     >
-      Próximamente se anunciarán las sedes.
+      {text}
     </Box>
   );
 }
@@ -511,9 +512,11 @@ function EmptyState() {
 interface Props {
   locations:              PublicLocation[];
   futureEventLocationIds: number[];
+  /** Encabezado editable desde el dashboard ("Contenido del sitio → Sedes"). */
+  content:                SectionHeaderContent;
 }
 
-export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
+export function LocationsLanding({ locations, futureEventLocationIds, content }: Props) {
   const groups = groupByProvince(locations);
 
   const mouseX = useMotionValue(-200);
@@ -599,17 +602,17 @@ export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
           }}
         >
           <Box sx={{ width: '20px', height: '1.5px', backgroundColor: PRIMARY, flexShrink: 0 }} />
-          Sedes
+          {content.eyebrow}
         </Box>
       </motion.div>
 
       {/* Headline */}
       {[
-        { text: 'Donde la misión', color: BG_DARK, delay: 0.08 },
-        { text: 'cobra vida.',     color: PRIMARY,  delay: 0.2  },
-      ].map(({ text, color, delay }) => (
+        { text: content.titleLine1, color: BG_DARK, delay: 0.08 },
+        { text: content.titleLine2, color: PRIMARY,  delay: 0.2  },
+      ].map(({ text, color, delay }, i) => (
         <motion.div
-          key={text}
+          key={i}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0 }}
@@ -647,7 +650,7 @@ export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
             maxWidth: '540px',
           }}
         >
-          Descubrí dónde podés sumarte y vivir la experiencia de servir.
+          {content.description}
         </Box>
       </motion.div>
 
@@ -655,7 +658,7 @@ export function LocationsLanding({ locations, futureEventLocationIds }: Props) {
 
       {/* Lista agrupada por provincia */}
       {locations.length === 0 ? (
-        <EmptyState />
+        <EmptyState text={content.emptyText} />
       ) : (
         <Box>
           {groups.map((group, gIdx) => (
